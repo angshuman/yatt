@@ -127,10 +127,14 @@ export function tokenize(source: string): Token[] {
       }
     }
 
-    // If we reach here in header mode with an unrecognized line, exit header mode
+    // Plain text line or markdown list item — treat as task with 'new' status
     headerMode = false;
-    // Treat as blank/unknown — emit blank so it's skipped
-    tokens.push({ type: 'blank', raw, line: lineNum });
+    let plainContent = trimmed;
+    const listMarkerMatch = trimmed.match(/^(?:[-*]\s+|\d+[.)]\s+)/);
+    if (listMarkerMatch) {
+      plainContent = trimmed.slice(listMarkerMatch[0].length);
+    }
+    tokens.push({ type: 'task', raw, line: lineNum, content: plainContent });
   }
 
   return tokens;

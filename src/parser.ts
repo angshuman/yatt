@@ -35,16 +35,22 @@ const WORD_TO_STATUS: Record<string, Status> = {
 
 const RE_DURATION = /^(\d+(?:\.\d+)?)(h|bd|d|w|m|q)$/;
 const RE_ASSIGNEE = /^@[\w-]+/g;
-const RE_TAG = /^#[\w-]+/g;
 const RE_PRIORITY = /^!(high|critical|low|normal)$/;
 const RE_PROGRESS = /^%(\d+)$/;
 const RE_ID = /^id:([\w-]+)$/;
+const RE_HASH_ID = /^#([\w-]+)$/;
 const RE_AFTER = /^after:([\w|,-]+)$/;
 const RE_MODIFIER = /^\+[\w-]+(:\S+)?$/;  // +key or +key:value e.g. +delayed:1w
 const RE_START_DATE = /^>(\d{4}-\d{2}-\d{2})$/;
 const RE_DUE_DATE = /^<(\d{4}-\d{2}-\d{2})$/;
 const RE_RECURRENCE = /^\*(daily|weekday|weekly|biweekly|monthly|quarterly|yearly)$/;
 const RE_EXTERNAL_REF = /^\$[\w-]+$/;
+
+// Keywords that can appear as bare modifiers (without + prefix) in pipe fields
+const MODIFIER_KEYWORDS = new Set([
+  'deadline', 'fixed', 'external', 'waiting', 'at-risk', 'blocked',
+  'critical', 'tentative', 'recurring', 'milestone', 'delayed', 'hard-block',
+]);
 
 // ── Status parsing ────────────────────────────────────────────────────────────
 
@@ -153,9 +159,16 @@ function parseFields(segments: string[]): ParsedFields {
       continue;
     }
 
-    // Modifier
+    // Modifier with + prefix
     if (RE_MODIFIER.test(s)) {
       result.modifiers.push(s.slice(1));
+      continue;
+    }
+
+    // Bare modifier keyword (without + prefix): e.g. blocked, delayed:1w
+    const bareModMatch = s.match(/^([\w-]+)(:\S+)?$/);
+    if (bareModMatch && MODIFIER_KEYWORDS.has(bareModMatch[1])) {
+      result.modifiers.push(s);
       continue;
     }
 
@@ -172,19 +185,11 @@ function parseFields(segments: string[]): ParsedFields {
       continue;
     }
 
-    // Tags (may have multiple #tags in one segment)
-    const tagMatches = s.match(/(#[\w-]+)/g);
-    if (tagMatches && s.replace(/(#[\w-]+)/g, '').trim() === '') {
-      result.tags.push(...tagMatches.map(t => t.slice(1)));
+    // Hash ID shortcut: #slug = id:slug
+    const hashIdMatch = s.match(RE_HASH_ID);
+    if (hashIdMatch) {
+      result.id = hashIdMatch[1];
       continue;
-    }
-
-    // Mixed assignees and tags in one segment
-    if (/[@#]/.test(s)) {
-      const aMixed = s.match(/(@[\w-]+)/g);
-      const tMixed = s.match(/(#[\w-]+)/g);
-      if (aMixed) result.assignees.push(...aMixed.map(a => a.slice(1)));
-      if (tMixed) result.tags.push(...tMixed.map(t => t.slice(1)));
     }
   }
 
