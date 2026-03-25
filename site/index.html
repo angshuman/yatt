@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YATT — Gantt Editor</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github-dark.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f172a;
+      --panel:     #1e293b;
+      --panel-2:   #162032;
+      --border:    #334155;
+      --border-hi: #3b82f6;
+      --text:      #e2e8f0;
+      --text-muted:#94a3b8;
+      --accent:    #3b82f6;
+      --accent-hi: #60a5fa;
+      --red:       #ef4444;
+      --green:     #22c55e;
+      --toolbar-h: 48px;
+      --status-h:  32px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      overflow: hidden;
+    }
+
+    /* ─── Layout ──────────────────────────────────────────────── */
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ─── Toolbar ─────────────────────────────────────────────── */
+
+    #toolbar {
+      flex: 0 0 var(--toolbar-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .logo {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--accent-hi);
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .logo span {
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0;
+      font-size: 13px;
+      margin-left: 8px;
+    }
+
+    .toolbar-center {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    #examples-select {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s;
+      max-width: 220px;
+    }
+
+    #examples-select:hover, #examples-select:focus {
+      border-color: var(--accent);
+    }
+
+    #examples-select option {
+      background: var(--panel);
+    }
+
+    .toolbar-right {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .view-toggle {
+      display: flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .view-toggle button {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .view-toggle button:not(:last-child) {
+      border-right: 1px solid var(--border);
+    }
+
+    .view-toggle button:hover {
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    .view-toggle button.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ─── Workspace ───────────────────────────────────────────── */
+
+    #workspace {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      height: calc(100vh - var(--toolbar-h) - var(--status-h));
+    }
+
+    #editor-pane {
+      flex: 0 0 50%;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+
+    #editor {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      border: none;
+      padding: 20px;
+      resize: none;
+      outline: none;
+      tab-size: 2;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    #editor::-webkit-scrollbar { width: 6px; }
+    #editor::-webkit-scrollbar-track { background: transparent; }
+    #editor::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ─── Divider ─────────────────────────────────────────────── */
+
+    #divider {
+      flex: 0 0 4px;
+      background: var(--border);
+      cursor: col-resize;
+      transition: background 0.15s;
+      position: relative;
+      z-index: 5;
+    }
+
+    #divider:hover, #divider.dragging {
+      background: var(--accent);
+    }
+
+    /* ─── Preview ─────────────────────────────────────────────── */
+
+    #preview-pane {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--panel-2);
+      min-width: 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    #preview-pane::-webkit-scrollbar { width: 6px; }
+    #preview-pane::-webkit-scrollbar-track { background: transparent; }
+    #preview-pane::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    #preview {
+      padding: 28px 32px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* ─── Markdown Prose ──────────────────────────────────────── */
+
+    #preview h1,
+    #preview h2,
+    #preview h3,
+    #preview h4 {
+      color: var(--text);
+      font-weight: 600;
+      line-height: 1.3;
+      margin-top: 1.6em;
+      margin-bottom: 0.5em;
+    }
+
+    #preview h1 { font-size: 1.8em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+    #preview h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 0.2em; }
+    #preview h3 { font-size: 1.15em; }
+    #preview h4 { font-size: 1em; }
+
+    #preview p {
+      color: var(--text);
+      line-height: 1.75;
+      margin-bottom: 1em;
+    }
+
+    #preview ul, #preview ol {
+      margin: 0.5em 0 1em 1.5em;
+      line-height: 1.75;
+    }
+
+    #preview li { margin-bottom: 0.25em; }
+
+    #preview a { color: var(--accent-hi); text-decoration: underline; text-underline-offset: 2px; }
+    #preview a:hover { color: #93c5fd; }
+
+    #preview strong { color: #f1f5f9; font-weight: 600; }
+    #preview em { color: #cbd5e1; font-style: italic; }
+
+    #preview blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 8px 16px;
+      margin: 1em 0;
+      background: rgba(59,130,246,0.06);
+      border-radius: 0 4px 4px 0;
+      color: var(--text-muted);
+    }
+
+    #preview blockquote p { margin: 0; }
+
+    #preview hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.5em 0;
+    }
+
+    #preview table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+      font-size: 13px;
+    }
+
+    #preview th, #preview td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    #preview th {
+      background: var(--panel);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    #preview td { color: var(--text-muted); }
+    #preview tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    /* Inline code */
+    #preview :not(pre) > code {
+      background: var(--panel);
+      color: #f472b6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 0.88em;
+    }
+
+    /* Code blocks (non-yatt) */
+    #preview pre {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      margin: 1em 0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    #preview pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    /* ─── YATT blocks ─────────────────────────────────────────── */
+
+    .yatt-block {
+      margin: 20px 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .yatt-block svg {
+      max-width: 100%;
+      display: block;
+    }
+
+    .yatt-errors {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin: 12px 0;
+    }
+
+    .yatt-errors p {
+      color: var(--red);
+      font-size: 12px;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .yatt-errors p + p { margin-top: 4px; }
+
+    /* ─── View modes ──────────────────────────────────────────── */
+
+    /* view-editor: hide preview */
+    #workspace.view-editor #editor-pane {
+      flex: 0 0 100%;
+      border-right: none;
+    }
+    #workspace.view-editor #divider,
+    #workspace.view-editor #preview-pane { display: none; }
+
+    /* view-preview: hide editor */
+    #workspace.view-preview #preview-pane { flex: 0 0 100%; }
+    #workspace.view-preview #editor-pane,
+    #workspace.view-preview #divider { display: none; }
+
+    /* ─── Status bar ──────────────────────────────────────────── */
+
+    #statusbar {
+      flex: 0 0 var(--status-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      font-size: 11.5px;
+      color: var(--text-muted);
+      gap: 16px;
+      user-select: none;
+    }
+
+    #status-errors { min-width: 80px; }
+    #status-errors.has-errors { color: var(--red); font-weight: 600; }
+    #status-chars { color: var(--text-muted); }
+    .powered { color: var(--text-muted); opacity: 0.6; }
+
+    /* ─── Responsive ──────────────────────────────────────────── */
+
+    @media (max-width: 767px) {
+      #divider { display: none; }
+      #editor-pane { display: none; }
+      #preview-pane { flex: 0 0 100%; }
+      #workspace.view-editor #editor-pane { display: flex; flex: 0 0 100%; }
+      #workspace.view-editor #preview-pane { display: none; }
+      #workspace.view-preview #preview-pane { display: block; flex: 0 0 100%; }
+      #workspace.view-preview #editor-pane { display: none; }
+      #preview { padding: 16px; }
+    }
+
+    /* ─── Scrollbar for hljs ──────────────────────────────────── */
+
+    .hljs { background: transparent !important; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <header id="toolbar">
+    <div class="logo">YATT<span>Gantt Editor</span></div>
+    <div class="toolbar-center">
+      <select id="examples-select" title="Load an example">
+        <option value="quick-start">Quick start</option>
+        <option value="software-release">Software release</option>
+        <option value="personal-project">Personal project</option>
+        <option value="construction">Construction</option>
+      </select>
+    </div>
+    <div class="toolbar-right">
+      <div class="view-toggle">
+        <button data-view="split" class="active">Split</button>
+        <button data-view="editor">Editor</button>
+        <button data-view="preview">Preview</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="workspace">
+    <div id="editor-pane">
+      <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+    </div>
+    <div id="divider"></div>
+    <div id="preview-pane">
+      <div id="preview"></div>
+    </div>
+  </div>
+
+  <footer id="statusbar">
+    <span id="status-errors"></span>
+    <span id="status-chars"></span>
+    <span class="powered">Powered by YATT</span>
+  </footer>
+</div>
+
+<!-- External deps -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11/highlight.min.js"></script>
+<script src="./yatt.bundle.js"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  // ─── Example content ────────────────────────────────────────────────────────
+
+  const EXAMPLES = {
+    'quick-start': `# My Project
+
+Track tasks with simple plain-text syntax, rendered as Gantt charts.
+
+\`\`\`yatt
+title: Quick Start
+start: 2026-01-05
+
+// Sequential tasks — each starts after the previous
+[done]   Requirements  | 2d | @alice | id:reqs
+[active] Design        | 3d | @bob   | after:reqs | %60 | #design
+[new]    Build         | 1w | @alice | after:design
+
+// Named parallel blocks run concurrently
+parallel: testing
+[new] Unit tests | 3d | @bob
+[new] E2E tests  | 2d | @alice
+end: testing
+
+// Milestone waits for the parallel block to complete
+>> Launch | after:testing | +deadline
+
+[>] Stretch feature | 5d   // deferred — won't affect schedule
+\`\`\`
+
+## Syntax cheat sheet
+
+| Syntax | Meaning |
+|--------|---------|
+| \`[done]\` / \`[active]\` / \`[new]\` | Task status |
+| \`2d\`, \`1w\`, \`3h\` | Duration (days / weeks / hours) |
+| \`@person\` | Owner/assignee |
+| \`after:id\` | Dependency |
+| \`id:name\` | Give a task an ID for dependencies |
+| \`#tag\` | Category tag |
+| \`%60\` | Percent complete |
+| \`>>\` | Milestone |
+| \`[>]\` | Deferred task (excluded from schedule) |
+| \`parallel:\` / \`end:\` | Concurrent task group |
+| \`// comment\` | Inline comment |
+
+Use the **examples dropdown** above to explore real-world plans.
+`,
+
+    'software-release': `# Platform v3.0 Release
+
+A multi-team release plan for the v3.0 platform overhaul,
+covering infrastructure, security, feature development, QA, staging, and production rollout.
+
+\`\`\`yatt
+title: Platform v3.0 Release
+start: 2026-01-05
+finish: 2026-04-30
+schedule: business-days
+owner: @eng-lead
+version: 3.0-rc1
+
+// Multi-team release plan for the v3.0 platform overhaul.
+// Teams: Platform (core infra), Product (features), QA, Ops, Security.
+// All durations in business days unless noted otherwise.
+
+# Program Setup
+
+[x] Kickoff meeting              | 1bd  | @eng-lead | @pm | #ceremony | %100 | id:kickoff
+[x] Draft RACI matrix            | 2bd  | @pm       | %100
+[x] Finalize feature list v3.0   | 3bd  | @pm | @product-lead | %100 | id:scope-locked
+>> Scope freeze                   | id:scope-freeze | after:scope-locked
+
+# Architecture & Infrastructure
+
+parallel: infra | after:scope-freeze
+[x] Infra capacity planning      | 3bd  | @sre-lead  | #platform | %100 | id:infra-plan | $PLAT-101
+[x] New DB cluster provisioning  | 5bd  | @sre-alice | #platform | %100 | id:db-cluster | $PLAT-102 | after:infra-plan
+[~] Kubernetes upgrade to 1.32   | 4bd  | @sre-bob   | #platform | %70  | id:k8s-upgrade | $PLAT-103 | after:infra-plan | +at-risk
+[ ] Service mesh migration       | 5bd  | @sre-alice | #platform | id:mesh-done   | $PLAT-104 | after:k8s-upgrade
+end: infra
+
+// Security track runs concurrently with infra work
+parallel: security | after:scope-freeze
+[x] Threat model review          | 3bd  | @sec-lead  | #security | %100 | id:threat-model | $SEC-201
+[~] Penetration testing (ext)    | 10bd | @pentest-vendor | #security | %40 | id:pentest | $SEC-202 | +external | +waiting | after:threat-model
+[ ] Remediation: critical issues | 3bd  | @sec-eng   | #security | id:sec-remediation | $SEC-203 | after:pentest
+[ ] Security sign-off            | 1bd  | @sec-lead  | #security | id:sec-approved | after:sec-remediation
+end: security
+
+>> Infrastructure ready          | id:infra-ready | after:infra,security
+
+# Feature Development
+
+// Feature teams run in parallel after infrastructure is ready
+
+parallel: feature-auth | after:infra-ready
+[~] SSO integration design       | 3bd  | @auth-alice | #auth | %80  | id:sso-design | $FEAT-301
+[~] SAML provider implementation | 5bd  | @auth-alice | #auth | %35  | id:sso-impl   | $FEAT-302 | after:sso-design | %35
+[ ] OAuth 2.1 refresh flow       | 3bd  | @auth-bob   | #auth | id:oauth-done  | $FEAT-303 | after:sso-design
+.  [ ] Token rotation logic      | 1bd  | @auth-bob   | #auth | id:token-rotation
+.  [ ] Revocation endpoint       | 1bd  | @auth-bob   | after:token-rotation
+.  [ ] Integration tests         | 1bd  | @auth-bob   | after:token-rotation
+[ ] Auth regression suite        | 2bd  | @qa-carol   | #auth | #qa | after:sso-impl,oauth-done | id:auth-qa-done
+end: feature-auth
+
+parallel: feature-billing | after:infra-ready
+[ ] Billing engine v2 design     | 4bd  | @billing-dan  | #billing | id:billing-design | $FEAT-401
+[ ] Stripe v3 SDK migration      | 3bd  | @billing-dan  | #billing | id:stripe-done    | $FEAT-402 | after:billing-design
+.  [x] Upgrade client library    | 0.5bd | @billing-dan  | %100
+.  [ ] Update webhook handlers   | 1bd  | @billing-dan
+.  [ ] Update payment intents    | 1bd  | @billing-dan  | after:stripe-done
+[ ] Invoice PDF generator        | 3bd  | @billing-eve  | #billing | id:invoice-gen    | $FEAT-403 | after:billing-design
+[ ] Multi-currency support       | 4bd  | @billing-eve  | #billing | id:currency-done  | $FEAT-404 | after:billing-design | !high
+[?] Crypto payment gateway       | 5bd  | @billing-dan  | #billing | +at-risk | $FEAT-405 | after:billing-design
+// Crypto gateway is at-risk due to regulatory uncertainty in key markets
+[>] Recurring billing v2         | 6bd  | #billing      | $FEAT-406
+// Deferred to v3.1 — scope cut approved 2026-01-28
+[ ] Billing regression suite     | 2bd  | @qa-frank     | #billing | #qa | after:stripe-done,invoice-gen,currency-done | id:billing-qa-done
+end: feature-billing
+
+parallel: feature-api | after:infra-ready
+[ ] GraphQL schema v3 design     | 4bd  | @api-grace  | #api | id:gql-design   | $FEAT-501
+[ ] REST → GraphQL migration     | 6bd  | @api-grace  | #api | id:gql-impl     | $FEAT-502 | after:gql-design
+[ ] Rate limiting v2             | 3bd  | @api-henry  | #api | id:ratelimit    | $FEAT-503 | after:gql-design
+[ ] API versioning strategy      | 2bd  | @api-grace  | #api | id:api-versioning | $FEAT-504 | after:gql-design
+[ ] API contract tests           | 3bd  | @qa-iris    | #api | #qa | after:gql-impl,ratelimit | id:api-qa-done
+end: feature-api
+
+>> Feature development complete  | id:features-done | after:feature-auth,feature-billing,feature-api
+
+# Integration & QA
+
+[~] Cross-service integration tests | 5bd | @qa-lead | @qa-carol | @qa-frank | @qa-iris | #qa | %15 | id:integration-tests | after:features-done | $QA-601
+[ ] Performance benchmarking        | 3bd | @sre-bob  | #qa | #platform | after:integration-tests | id:perf-done | $QA-602
+[ ] Accessibility audit (ext)       | 4bd | @a11y-vendor | #qa | +external | after:features-done | id:a11y-done | $QA-603
+[ ] Load testing — 10x traffic      | 2bd | @sre-alice   | #qa | #platform | after:perf-done | id:load-test | $QA-604
+[_] Manual exploratory — cancelled  | 3bd | @qa-lead | #qa
+// Cancelled: replaced by expanded automated regression coverage
+
+>> QA complete                   | id:qa-done | after:integration-tests,perf-done,a11y-done,load-test
+
+# Staging & UAT
+
+parallel: staging | after:qa-done
+[ ] Deploy to staging env        | 1bd  | @sre-alice  | #ops | id:staging-deploy | $OPS-701
+[ ] Smoke test staging           | 1bd  | @qa-carol   | #qa  | after:staging-deploy
+[ ] UAT — internal stakeholders  | 3bd  | @pm | @product-lead | #uat | after:staging-deploy | id:uat-internal
+[ ] UAT — beta customers (ext)   | 5bd  | @pm | +external | #uat | after:staging-deploy | id:uat-beta
+end: staging
+
+>> UAT sign-off                  | id:uat-done | after:staging | +deadline | <2026-04-10
+
+# Release Preparation
+
+[ ] Release notes v3.0           | 2bd  | @pm | @docs-jake | #docs | after:qa-done | id:release-notes
+[ ] Migration guide (customers)  | 3bd  | @docs-jake | #docs | after:features-done | id:migration-guide
+[ ] Runbook: v3.0 deployment     | 2bd  | @sre-lead  | #ops  | after:qa-done | id:runbook
+[ ] Rollback procedure tested    | 1bd  | @sre-alice | #ops  | after:staging-deploy | id:rollback-ready
+[ ] Change advisory board review | 1bd  | @sre-lead | @sec-lead | @pm | #ops | after:uat-done | id:cab-approved | +deadline | <2026-04-13
+
+>> Go / No-go decision           | id:go-nogo | after:uat-done,rollback-ready,cab-approved | +deadline | >2026-04-14
+
+# Production Release
+
+[ ] Database migrations (prod)   | 2bd  | @sre-alice | #ops | after:go-nogo | id:db-migrations | !critical | +fixed | >2026-04-14
+[ ] Blue-green deploy: v3.0      | 1bd  | @sre-bob   | #ops | after:db-migrations | id:prod-deploy | !critical
+[ ] Enable feature flags 10%     | 0.5bd | @sre-lead | #ops | after:prod-deploy | id:canary-10
+[ ] Canary monitoring — 24h      | 1bd  | @sre-alice | @sre-bob | #ops | after:canary-10 | id:canary-ok
+[ ] Enable feature flags 100%    | 0.5bd | @sre-lead | #ops | after:canary-ok | id:full-rollout
+[ ] Notify customers: GA email   | 0.5bd | @pm | #comms | after:full-rollout
+
+>> v3.0 Generally Available      | id:v3-ga | after:full-rollout | +deadline | <2026-04-30
+
+# Post-Launch
+
+[ ] Hypercare monitoring — 5d    | 5bd  | @sre-alice | @sre-bob | #ops | after:v3-ga | id:hypercare
+[ ] v3.0 retrospective           | 1bd  | @eng-lead | @pm | #ceremony | after:hypercare
+[ ] Deprecate v2 API (notice)    | 1bd  | @api-grace | #api | after:v3-ga | >2026-05-01
+[ ] Update public roadmap        | 1bd  | @pm | #comms | after:v3-ga
+
+# Recurring Ceremonies
+
+*weekly    Sprint standup        | 15m | @eng-lead | @pm | #ceremony
+*biweekly  Sprint review         | 1h  | @eng-lead | @pm | @product-lead | #ceremony
+*biweekly  Architecture sync     | 1h  | @eng-lead | @sre-lead | @sec-lead | #ceremony
+*monthly   Executive status      | 1h  | @pm | @exec-sponsor | #ceremony
+\`\`\`
+`,
+
+    'personal-project': `# Portfolio Redesign
+
+A solo dev portfolio site redesign — goal: ship a new portfolio by end of February.
+Mix of design, dev, and content work with parallel phases where design and content overlap.
+
+\`\`\`yatt
+title: Portfolio Redesign
+start: 2026-02-02
+schedule: business-days
+owner: @me
+version: 1.0
+
+// Solo dev portfolio site redesign.
+// Goal: ship a new portfolio by end of February.
+// Mix of design, dev, and content work — mostly sequential with
+// a couple of parallel phases where design and content can overlap.
+
+# Research & Planning
+
+[x] Audit current site              | 2h  | @me | %100 | id:audit
+[x] Collect inspiration references  | 3h  | @me | %100 | id:inspo | after:audit
+[x] List all case studies to write  | 1h  | @me | %100 | id:case-study-list
+[x] Choose tech stack               | 2h  | @me | %100 | id:stack-chosen
+// Went with Astro + Tailwind. Rejected Next.js (too heavy) and plain HTML (too slow to update).
+
+# Design
+
+[x] Sketch layout concepts         | 1d  | @me | %100 | id:sketches | after:inspo
+[x] Choose color palette & type    | 2h  | @me | %100 | id:visual-system | after:sketches
+[~] High-fidelity mockups          | 2d  | @me | %65  | id:mockups | after:visual-system
+.  [x] Homepage mockup             | 3h  | @me | %100
+.  [x] Case study page             | 3h  | @me | %100
+.  [~] About & contact page        | 2h  | @me | %40
+.  [ ] 404 and empty states        | 1h  | @me
+[ ] Mobile layout review           | 1h  | @me | id:mobile-review | after:mockups
+>> Design approved                  | id:design-done | after:mobile-review
+
+# Content (parallel with late design)
+
+parallel: content | after:case-study-list
+[~] Case study: E-commerce rebuild  | 1d  | @me | %80 | id:cs-ecomm
+[~] Case study: SaaS dashboard      | 1d  | @me | %50 | id:cs-saas | after:cs-ecomm
+[ ] Case study: Mobile app          | 1d  | @me | id:cs-mobile | after:cs-saas
+[ ] About page copy                 | 2h  | @me | id:about-copy
+[ ] Homepage headline & sub-copy    | 1h  | @me | id:home-copy | after:about-copy
+end: content
+
+# Development
+
+parallel: dev-setup | after:design-done
+[ ] Scaffold Astro project          | 2h  | @me | id:scaffold
+[ ] Configure Tailwind & fonts      | 1h  | @me | after:scaffold | id:tailwind-done
+[ ] Set up component library        | 3h  | @me | after:tailwind-done | id:components-done
+[ ] Deploy pipeline (Vercel)        | 1h  | @me | id:deploy-pipeline
+end: dev-setup
+
+parallel: dev-pages | after:dev-setup,content
+[ ] Build homepage                  | 3h  | @me | id:homepage-built | after:components-done,home-copy
+[ ] Build case study template       | 4h  | @me | id:cs-template | after:components-done
+[ ] Populate case studies           | 2h  | @me | after:cs-template,cs-mobile | id:cs-done
+[ ] Build about & contact pages     | 2h  | @me | after:components-done,about-copy
+end: dev-pages
+
+[ ] Dark mode implementation        | 2h  | @me | after:dev-pages | id:dark-mode
+[ ] Animations & scroll effects     | 3h  | @me | after:dark-mode
+[ ] Cross-browser testing           | 2h  | @me | after:dev-pages | id:xbrowser
+
+# Polish & Launch
+
+[ ] Lighthouse audit & fixes        | 3h  | @me | after:dev-pages | id:lighthouse
+.  [ ] Performance (target 95+)     | 1h  | @me | id:perf-fix
+.  [ ] Accessibility (target 95+)   | 1h  | @me | id:a11y-fix
+.  [ ] SEO meta tags                | 1h  | @me | id:seo-fix
+[ ] Write README for site repo      | 1h  | @me | after:lighthouse
+[ ] Final review pass               | 2h  | @me | after:lighthouse,xbrowser | id:final-review
+
+>> Ship to production               | id:launched | after:final-review | +deadline | <2026-02-28
+
+# Nice to Haves
+
+[>] Blog section                    | 2d  | @me
+// Deferred: no content ready, don't want to ship empty
+[>] Project filter / search         | 1d  | @me
+// Deferred: only 6 projects, not worth it yet
+\`\`\`
+`,
+
+    'construction': `# Meridian House — Level 4 Commercial Fit-Out
+
+A 1,200 sqm office tenancy fit-out for Meridian Financial Group, run by Apex Interiors.
+Covers regulatory approvals, demolition, rough-in, linings, fit-off, joinery, finishes, and handover.
+
+\`\`\`yatt
+title: Meridian House — Level 4 Commercial Fit-Out
+start: 2026-02-02
+finish: 2026-07-31
+schedule: business-days
+owner: @project-mgr
+version: tender-rev3
+
+// Commercial fit-out: 1,200 sqm office tenancy, 4th floor.
+// Client: Meridian Financial Group.
+// Head contractor: Apex Interiors Pty Ltd.
+// Duration units: bd = business days throughout.
+// +external = vendor, council, or statutory body — not under our control.
+// +fixed = locked booking (crane, hoist, hired plant) — cannot be moved.
+// +waiting = submitted, awaiting response from external party.
+
+# Regulatory & Approvals
+
+[~] Development application (DA) lodgement    | 5bd   | @project-mgr | #approvals | +external | id:da-lodged | %80 | $CNCL-001
+[!] DA determination — council               | 20bd  | @project-mgr | #approvals | +external | +waiting | id:da-approved | after:da-lodged | $CNCL-002
+// Council has 20 business days statutory period. Currently awaiting formal acknowledgement.
+[ ] Building permit application               | 3bd   | @certifier   | #approvals | id:bp-applied | after:da-approved
+[ ] Building permit issued                    | 10bd  | @certifier   | #approvals | +external | id:bp-issued | after:bp-applied | $CNCL-003
+[ ] Obtain occupation certificate             | 5bd   | @certifier   | #approvals | +external | id:oc-prereq | +deadline | <2026-07-25 | $CNCL-004
+>> Regulatory green-light                      | id:reg-clear | after:bp-issued
+
+# Demolition & Strip-Out
+
+[ ] Demolition scope sign-off                | 2bd   | @project-mgr | @client-rep | #demo | after:reg-clear | id:demo-scope
+[ ] Asbestos clearance inspection (ext)      | 3bd   | @asbestos-contractor | #demo | +external | id:asbestos-clear | after:demo-scope | $ENV-101
+// External hygienist required before any demolition work commences — statutory requirement.
+[ ] Strip-out: existing partitions           | 8bd   | @demo-crew    | #demo | after:asbestos-clear | id:partitions-down
+[ ] Strip-out: existing ceilings & grid      | 5bd   | @demo-crew    | #demo | after:partitions-down | id:ceilings-down
+[ ] Strip-out: floor coverings               | 3bd   | @demo-crew    | #demo | after:partitions-down | id:floors-bare
+[ ] Remove existing HVAC ductwork            | 4bd   | @hvac-demo    | #demo | #hvac | after:ceilings-down | id:hvac-removed
+[ ] Electrical strip-out                     | 3bd   | @elec-contractor | #demo | #electrical | after:ceilings-down | id:elec-stripped
+>> Demolition complete                         | id:demo-done | after:hvac-removed,elec-stripped,floors-bare
+
+# Structure & Core Works
+
+parallel: concrete-works | after:demo-done
+[ ] Survey & set-out                         | 2bd   | @surveyor     | #structure | id:set-out | +external
+[ ] New concrete slab penetrations           | 3bd   | @concrete-crew | #structure | after:set-out | id:slab-done
+[ ] Structural steel — new partition posts   | 4bd   | @steel-fix    | #structure | after:set-out | id:steel-done | $STRC-201
+end: concrete-works
+
+parallel: services-rough-in | after:demo-done
+// Rough-in can begin once demo is done; does not need to wait for concrete
+[ ] Hydraulic rough-in                       | 6bd   | @hydraulics   | #hydraulics | id:hyd-roughin | $SVC-301
+.  [ ] Drainage re-routes                    | 2bd   | @hydraulics   | id:drainage-done
+.  [ ] Cold water supply                     | 2bd   | @hydraulics   | after:drainage-done
+.  [ ] Hot water system install              | 2bd   | @hydraulics   | after:drainage-done
+[ ] HVAC new ductwork & VAVs                 | 8bd   | @hvac-contractor | #hvac | id:hvac-roughin | $SVC-302
+[ ] Electrical rough-in: power & data       | 7bd   | @elec-contractor | #electrical | id:elec-roughin | $SVC-303
+.  [ ] DB board installation                 | 1bd   | @elec-contractor | id:db-board
+.  [ ] Power conduit runs                    | 3bd   | @elec-contractor | after:db-board | id:conduit-done
+.  [ ] Data conduit runs                     | 3bd   | @elec-contractor | after:db-board
+[ ] Fire services rough-in                   | 5bd   | @fire-contractor | #fire | id:fire-roughin | $SVC-304 | +external
+// Fire contractor is a specialist sub — their schedule is fixed around compliance inspections.
+end: services-rough-in
+
+>> Rough-in inspections                        | id:roughin-inspected | after:concrete-works,services-rough-in | +deadline
+
+[ ] Statutory inspections — services          | 3bd   | @certifier | #approvals | +external | id:services-certified | after:roughin-inspected | $CNCL-005
+// Inspector must sign off before any linings go up. Book 10bd in advance.
+
+# Linings & Partitions
+
+parallel: linings | after:services-certified,steel-done
+[ ] Plasterboard ceiling grid installation   | 6bd   | @ceiling-crew | #linings | id:grid-up
+[ ] Bulkhead & shadow line framing           | 3bd   | @ceiling-crew | #linings | after:grid-up | id:bulkheads-done
+[ ] Internal partition framing               | 8bd   | @partition-crew | #linings | id:partitions-framed | $FIT-401
+[ ] Partition board — first fix              | 5bd   | @partition-crew | #linings | after:partitions-framed | id:board-1st-fix
+[ ] Ceiling board — first fix               | 4bd   | @ceiling-crew   | #linings | after:grid-up | id:ceiling-1st
+end: linings
+
+parallel: glazing | after:partitions-framed
+[ ] Glazed partition system — measure & order | 3bd  | @glazing-supplier | #glazing | +external | id:glazing-ordered | +waiting | $FIT-402
+// 6-week manufacturing lead time for custom glazing — order ASAP.
+[ ] Glazing delivery & install               | 5bd   | @glazing-supplier | #glazing | +external | +fixed | >2026-05-18 | id:glazing-installed | after:glazing-ordered | $FIT-403
+// Delivery date locked with supplier. Hoist booking confirmed for this window.
+end: glazing
+
+// Board second fix and joinery can proceed after first-fix board
+parallel: second-fix | after:linings,glazing-installed
+[ ] Partition board — second fix & tape      | 5bd   | @partition-crew | #linings | id:board-2nd
+[ ] Ceiling board — second fix & tape       | 4bd   | @ceiling-crew   | #linings | id:ceiling-2nd
+[ ] Plaster set & sand                       | 5bd   | @plasterer      | #linings | after:board-2nd,ceiling-2nd | id:plaster-done
+end: second-fix
+
+# Mechanical & Electrical Fit-Off
+
+parallel: fitoff-services | after:plaster-done
+[ ] HVAC commissioning & balancing           | 4bd   | @hvac-contractor | #hvac | id:hvac-commissioned | $SVC-305
+[ ] Electrical fit-off: lighting & GPOs     | 5bd   | @elec-contractor | #electrical | id:elec-fitoff | $SVC-306
+.  [ ] Install LED luminaires               | 2bd   | @elec-contractor | id:lights-in
+.  [ ] GPO face plates & data outlets       | 2bd   | @elec-contractor | after:lights-in
+.  [ ] Switchboard commissioning            | 1bd   | @elec-contractor | id:switchboard-comm | after:lights-in
+[ ] Fire alarm & detection install          | 3bd   | @fire-contractor | #fire | +external | id:fire-fitoff | $SVC-307
+[ ] Hydraulic fit-off: fixtures             | 3bd   | @hydraulics      | #hydraulics | id:hyd-fitoff | $SVC-308
+.  [ ] Bathroom fixtures install            | 1.5bd | @hydraulics
+.  [ ] Kitchen sink & tap                   | 0.5bd | @hydraulics
+.  [ ] Hot water commissioning              | 1bd   | @hydraulics
+[ ] Access control & CCTV                   | 3bd   | @security-contractor | #security | +external | id:security-fitoff | $SVC-309
+end: fitoff-services
+
+>> Services commissioning complete             | id:services-done | after:fitoff-services
+
+[ ] Independent commissioning report (ext)   | 2bd   | @commiss-engineer | #approvals | +external | after:services-done | id:comm-report | $CNCL-006
+// Third-party commissioning engineer required for BP sign-off.
+
+# Joinery & Fixtures
+
+parallel: joinery | after:plaster-done
+[ ] Kitchen joinery: fabricate & deliver     | 12bd  | @joinery-supplier | #joinery | +external | +fixed | >2026-06-02 | id:kitchen-joinery | $FIT-501
+// 12bd lead time in factory. Delivery booked for >2026-06-02.
+[ ] Reception desk fabricate & deliver       | 10bd  | @joinery-supplier | #joinery | +external | id:reception-joinery | $FIT-502 | after:kitchen-joinery
+[ ] Workstation benches install              | 4bd   | @joinery-installer | #joinery | id:bench-install | $FIT-503 | after:kitchen-joinery
+[ ] Kitchen joinery install                  | 2bd   | @joinery-installer | #joinery | id:kitchen-installed | $FIT-504 | after:kitchen-joinery
+[ ] Reception desk install                   | 2bd   | @joinery-installer | #joinery | id:reception-installed | $FIT-505 | after:reception-joinery
+end: joinery
+
+# Floor & Wall Finishes
+
+parallel: finishes | after:second-fix,joinery
+[ ] Paint — walls & ceilings (primed)        | 5bd   | @painter      | #finishes | id:paint-prime
+[ ] Paint — full colour coat                 | 4bd   | @painter      | #finishes | after:paint-prime | id:paint-done
+[ ] Vinyl plank flooring — open plan         | 6bd   | @flooring-crew | #finishes | id:vinyl-done | $FIT-601 | after:paint-prime
+.  [ ] Substrate preparation                 | 1bd   | @flooring-crew
+.  [ ] Adhesive and lay                      | 3bd   | @flooring-crew
+.  [ ] Trims and transitions                 | 1bd   | @flooring-crew
+.  [ ] Final cure time                       | 1bd   | @flooring-crew
+[ ] Carpet tiles — private offices           | 3bd   | @flooring-crew | #finishes | id:carpet-done | $FIT-602 | after:vinyl-done
+[ ] Splashback tile — kitchen                | 1bd   | @tiler         | #finishes | id:tile-done | $FIT-603 | after:kitchen-installed
+end: finishes
+
+# Furniture, AV & Loose Items
+
+parallel: ff-and-e | after:finishes,services-done
+[ ] Office furniture delivery & install      | 3bd   | @furniture-supplier | #ffe | +external | +fixed | >2026-07-07 | id:furniture-in | $FFE-701
+// Delivery window booked with building management for hoist access.
+[ ] AV system install & commissioning        | 3bd   | @av-contractor | #ffe | +external | id:av-done | $FFE-702 | after:elec-fitoff
+[ ] Signage & wayfinding install             | 1bd   | @signage-supplier | #ffe | +external | id:signage-done | $FFE-703
+[ ] Window furnishings — blinds install      | 1bd   | @blinds-supplier | #ffe | +external | +fixed | >2026-07-09 | id:blinds-done | $FFE-704
+end: ff-and-e
+
+>> Fit-out works complete                      | id:fitout-done | after:ff-and-e,comm-report
+
+# Defects, Handover & Occupation
+
+[ ] Contractor defects rectification         | 5bd   | @project-mgr  | #handover | after:fitout-done | id:defects-done
+[ ] Independent defects inspection           | 1bd   | @client-rep   | #handover | +external | after:defects-done | id:defects-inspected
+[ ] Obtain occupation certificate            | 5bd   | @certifier    | #approvals | +external | id:oc-issued | after:defects-inspected | $CNCL-004 | +deadline | <2026-07-25
+// OC must be received before client fit-out. Statutory processing time.
+[ ] Deep clean                               | 2bd   | @cleaner      | #handover | after:defects-done | id:clean-done | +fixed
+[ ] As-built drawings package               | 3bd   | @architect    | #handover | +external | after:fitout-done | id:asbuilts | $DOC-801
+[ ] O&M manuals compilation                 | 2bd   | @project-mgr  | #handover | after:asbuilts | id:manuals-done | $DOC-802
+[ ] Formal handover to client               | 1bd   | @project-mgr | @client-rep | #handover | after:oc-issued,clean-done,manuals-done | id:handover-done
+
+>> Practical Completion                        | id:pc | after:handover-done | +deadline | <2026-07-31
+
+# Post-Handover
+
+[>] 3-month defects liability period        | 1q   | @project-mgr | #handover | after:pc
+// Tracked informally; re-open in YATT when PC is achieved.
+[ ] Final account reconciliation            | 5bd  | @project-mgr | @quantity-surveyor | after:pc | $FIN-901
+[ ] Retention release (50%)                 | 1bd  | @project-mgr | after:pc | +external | $FIN-902
+[ ] Retention release (balance)             | 1bd  | @project-mgr | >2027-01-31 | +external | $FIN-903
+// Balance retention released at end of 6-month defects liability period.
+
+# Quarterly Milestones
+
+>> Q1 progress report                         | >2026-03-31 | id:q1-report
+>> Q2 progress report                         | >2026-06-30 | id:q2-report
+\`\`\`
+`,
+  };
+
+  // ─── State ───────────────────────────────────────────────────────────────────
+
+  let errorCount = 0;
+  let debounceTimer = null;
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragStartWidth = 0;
+
+  // ─── DOM refs ────────────────────────────────────────────────────────────────
+
+  const editor        = document.getElementById('editor');
+  const preview       = document.getElementById('preview');
+  const workspace     = document.getElementById('workspace');
+  const editorPane    = document.getElementById('editor-pane');
+  const divider       = document.getElementById('divider');
+  const examplesSelect = document.getElementById('examples-select');
+  const statusErrors  = document.getElementById('status-errors');
+  const statusChars   = document.getElementById('status-chars');
+  const viewButtons   = document.querySelectorAll('.view-toggle button');
+
+  // ─── Marked setup ────────────────────────────────────────────────────────────
+
+  function setupMarked() {
+    const renderer = new marked.Renderer();
+
+    renderer.code = function (codeOrToken, infoOrLang, escaped) {
+      // marked@12 passes a token object as first arg
+      let code, lang;
+      if (typeof codeOrToken === 'object' && codeOrToken !== null) {
+        code = codeOrToken.text;
+        lang = (codeOrToken.lang || '').trim().toLowerCase();
+      } else {
+        code = codeOrToken;
+        lang = (infoOrLang || '').trim().toLowerCase();
+      }
+
+      if (lang === 'yatt') {
+        return renderYattBlock(code);
+      }
+
+      // Non-yatt: use highlight.js
+      let highlighted;
+      try {
+        if (lang && window.hljs && window.hljs.getLanguage(lang)) {
+          highlighted = window.hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+        } else if (window.hljs) {
+          highlighted = window.hljs.highlightAuto(code).value;
+        } else {
+          highlighted = escapeHtml(code);
+        }
+      } catch (e) {
+        highlighted = escapeHtml(code);
+      }
+      const langClass = lang ? ` class="language-${escapeAttr(lang)}"` : '';
+      return `<pre><code${langClass}>${highlighted}</code></pre>`;
+    };
+
+    marked.use({
+      renderer,
+      gfm: true,
+      breaks: false,
+    });
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function escapeAttr(str) {
+    return str.replace(/"/g, '&quot;');
+  }
+
+  // ─── YATT rendering ──────────────────────────────────────────────────────────
+
+  function renderYattBlock(code) {
+    const yatt = window.YattLib;
+
+    if (!yatt || typeof yatt.render !== 'function') {
+      errorCount++;
+      return `<div class="yatt-errors"><p>YattLib not loaded — make sure yatt.bundle.js is present.</p></div>`;
+    }
+
+    try {
+      const result = yatt.render(code, 'gantt');
+
+      // result may be a string (SVG) or an object with { svg, errors } depending on build
+      if (typeof result === 'string') {
+        if (result.trim().startsWith('<svg') || result.trim().startsWith('<?xml')) {
+          return `<div class="yatt-block">${result}</div>`;
+        }
+        // Treat as error message
+        errorCount++;
+        return `<div class="yatt-errors"><p>${escapeHtml(result)}</p></div>`;
+      }
+
+      if (result && typeof result === 'object') {
+        const errors = result.errors || result.error ? [].concat(result.errors || result.error) : [];
+        const svg = result.svg || result.output || result.html || '';
+
+        let html = '';
+        if (svg && (svg.trim().startsWith('<svg') || svg.trim().startsWith('<?xml'))) {
+          html += `<div class="yatt-block">${svg}</div>`;
+        }
+        if (errors && errors.length) {
+          errorCount += errors.length;
+          const errorLines = errors
+            .map(e => `<p>${escapeHtml(typeof e === 'string' ? e : (e.message || String(e)))}</p>`)
+            .join('');
+          html += `<div class="yatt-errors">${errorLines}</div>`;
+        }
+        if (!html) {
+          // Nothing came back — treat as empty result
+          return `<div class="yatt-block"><p style="color:var(--text-muted);padding:16px;font-size:13px;">(no output)</p></div>`;
+        }
+        return html;
+      }
+
+      errorCount++;
+      return `<div class="yatt-errors"><p>Unexpected result from YattLib.render()</p></div>`;
+    } catch (err) {
+      errorCount++;
+      const msg = err && err.message ? err.message : String(err);
+      return `<div class="yatt-errors"><p>${escapeHtml(msg)}</p></div>`;
+    }
+  }
+
+  // ─── Render preview ──────────────────────────────────────────────────────────
+
+  function renderPreview() {
+    errorCount = 0;
+
+    const content = editor.value;
+    let html = '';
+
+    try {
+      html = marked.parse(content);
+    } catch (err) {
+      html = `<div class="yatt-errors"><p>Markdown parse error: ${escapeHtml(err.message)}</p></div>`;
+    }
+
+    preview.innerHTML = html;
+
+    // Update status bar
+    updateStatusBar(content.length);
+  }
+
+  function updateStatusBar(charCount) {
+    if (errorCount === 0) {
+      statusErrors.textContent = 'No errors';
+      statusErrors.classList.remove('has-errors');
+    } else {
+      statusErrors.textContent = `${errorCount} error${errorCount === 1 ? '' : 's'}`;
+      statusErrors.classList.add('has-errors');
+    }
+    statusChars.textContent = `${charCount.toLocaleString()} chars`;
+  }
+
+  // ─── Debounced render ────────────────────────────────────────────────────────
+
+  function scheduleRender() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(renderPreview, 200);
+  }
+
+  // ─── Tab key ─────────────────────────────────────────────────────────────────
+
+  editor.addEventListener('keydown', function (e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+      this.selectionStart = this.selectionEnd = start + 2;
+      scheduleRender();
+    }
+  });
+
+  editor.addEventListener('input', scheduleRender);
+
+  // ─── Examples dropdown ───────────────────────────────────────────────────────
+
+  examplesSelect.addEventListener('change', function () {
+    const key = this.value;
+    if (EXAMPLES[key] !== undefined) {
+      editor.value = EXAMPLES[key];
+      renderPreview();
+    }
+  });
+
+  // ─── View toggle ─────────────────────────────────────────────────────────────
+
+  viewButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const view = this.dataset.view;
+      viewButtons.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+
+      workspace.classList.remove('view-editor', 'view-preview');
+      if (view === 'editor') {
+        workspace.classList.add('view-editor');
+      } else if (view === 'preview') {
+        workspace.classList.add('view-preview');
+      }
+      // 'split' = no extra class
+    });
+  });
+
+  // ─── Draggable divider ───────────────────────────────────────────────────────
+
+  divider.addEventListener('mousedown', function (e) {
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartWidth = editorPane.getBoundingClientRect().width;
+    divider.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function (e) {
+    if (!isDragging) return;
+    const workspaceWidth = workspace.getBoundingClientRect().width;
+    const delta = e.clientX - dragStartX;
+    let newWidth = dragStartWidth + delta;
+
+    // Clamp: min 20%, max 80%
+    const minW = workspaceWidth * 0.2;
+    const maxW = workspaceWidth * 0.8;
+    newWidth = Math.max(minW, Math.min(maxW, newWidth));
+
+    const pct = (newWidth / workspaceWidth * 100).toFixed(2);
+    editorPane.style.flex = `0 0 ${pct}%`;
+  });
+
+  document.addEventListener('mouseup', function () {
+    if (isDragging) {
+      isDragging = false;
+      divider.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+
+  // ─── Responsive: default to preview-only on narrow screens ──────────────────
+
+  function applyResponsiveDefault() {
+    if (window.innerWidth < 768) {
+      // On mobile, activate preview button by default
+      const previewBtn = document.querySelector('.view-toggle button[data-view="preview"]');
+      if (previewBtn && !workspace.classList.contains('view-editor') && !workspace.classList.contains('view-preview')) {
+        previewBtn.click();
+      }
+    }
+  }
+
+  // ─── Init ────────────────────────────────────────────────────────────────────
+
+  function init() {
+    setupMarked();
+    editor.value = EXAMPLES['quick-start'];
+    renderPreview();
+    applyResponsiveDefault();
+  }
+
+  // Wait for all scripts to load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+</body>
+</html>
