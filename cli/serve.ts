@@ -585,6 +585,20 @@ function createServer(rootDir: string, port: number, sse: SseManager): http.Serv
   });
 }
 
+// ── Already-running check ─────────────────────────────────────────────────────
+
+function checkServerRunning(port: number): Promise<boolean> {
+  return new Promise(resolve => {
+    const req = http.request(
+      { host: '127.0.0.1', port, path: '/', method: 'HEAD' },
+      (res) => { resolve(res.statusCode === 200); res.destroy(); },
+    );
+    req.setTimeout(500, () => { req.destroy(); resolve(false); });
+    req.on('error', () => resolve(false));
+    req.end();
+  });
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 const { folder, port } = parseArgs(process.argv.slice(2));
@@ -594,23 +608,32 @@ if (!fs.existsSync(folder)) {
   process.exit(1);
 }
 
-const sse = new SseManager();
-watchFolder(folder, sse);
-const server = createServer(folder, port, sse);
-
-server.listen(port, '127.0.0.1', () => {
+(async () => {
   const addr = `http://localhost:${port}`;
-  process.stdout.write(`\nYATT Viewer  v0.1.0\n`);
-  process.stdout.write(`Serving : ${folder}\n`);
-  process.stdout.write(`URL     : ${addr}\n\n`);
-  openBrowser(addr);
-});
 
-server.on('error', (err: any) => {
-  if (err.code === 'EADDRINUSE') {
-    process.stderr.write(`Error: port ${port} is already in use. Try --port <number>\n`);
-  } else {
-    process.stderr.write(`Server error: ${err.message}\n`);
+  if (await checkServerRunning(port)) {
+    process.stdout.write(`YATT already running at ${addr}\n`);
+    openBrowser(addr);
+    return;
   }
-  process.exit(1);
-});
+
+  const sse = new SseManager();
+  watchFolder(folder, sse);
+  const server = createServer(folder, port, sse);
+
+  server.listen(port, '127.0.0.1', () => {
+    process.stdout.write(`\nYATT Viewer  v0.1.0\n`);
+    process.stdout.write(`Serving : ${folder}\n`);
+    process.stdout.write(`URL     : ${addr}\n\n`);
+    openBrowser(addr);
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      process.stderr.write(`Error: port ${port} already in use. Try --port <number>\n`);
+    } else {
+      process.stderr.write(`Server error: ${err.message}\n`);
+    }
+    process.exit(1);
+  });
+})();
