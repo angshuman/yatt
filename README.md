@@ -1,78 +1,126 @@
 # YATT — Yet Another Task Tracker
 
-Plain-text Gantt charts that live inside Markdown.
+Plain-text Gantt charts that live inside Markdown. Sequential tasks by default, named parallel blocks, pipe-delimited fields, explicit `after:` dependencies — all in one line per task.
 
-![build](https://img.shields.io/badge/build-passing-brightgreen)
-![npm](https://img.shields.io/npm/v/yatt)
-![license](https://img.shields.io/badge/license-MIT-blue)
+![build](https://img.shields.io/badge/build-passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue) [![Live editor](https://img.shields.io/badge/editor-live-blue)](https://angshuman.github.io/yatt/)
 
 ---
 
-## Example
+![YATT example Gantt chart](./docs/example-gantt.svg)
 
 ~~~yatt
-title: Mobile App v2.0
+title: Product v2 Launch
 start: 2026-01-05
-schedule: business-days
 
-# Discovery
+[done]   Discovery & planning  | 5d  | @alice          | id:phase1
+>> Kickoff complete             | after:phase1
 
-[x] Stakeholder interviews    | 3d  | @alice | #research | %100
-[x] Competitive analysis      | 2d  | @bob   | #research | %100
+parallel: design | after:phase1
+[done]   UX wireframes         | 4d  | @carol  | %100
+[active] Visual design         | 3d  | @carol  | %60  | +delayed
+end: design
 
-# Design
+parallel: engineering | after:phase1
+[done]   API scaffold          | 3d  | @bob             | id:api
+[active] Auth service          | 4d  | @bob    | %45   | after:api
+[?]      Core features         | 1w  | @alice  | +delayed | after:api
+end: engineering
 
-[~] Wireframes                | 5d  | @alice | %60 | id:wireframes
-[ ] Visual design             | 4d  | @alice | after:wireframes
->> Design sign-off            | >2026-01-26 | +deadline | id:design-done
-
-# Development
-
-parallel: frontend | after:design-done
-[~] Component library         | 3d  | @carol | %40 | $APP-101
-[ ] Page templates            | 4d  | @carol | after:components | id:components
-end: frontend
-
-parallel: backend | after:design-done
-[ ] API endpoints             | 5d  | @dave  | $APP-102 | id:api
-[ ] Auth service              | 2d  | @dave  | after:api
-end: backend
-
-# Release
-
-[ ] Integration testing       | 3d  | @eve   | after:frontend,backend
-[ ] Deploy to production      | 1d  | @dave  | !critical | after:frontend,backend
->> Launch                     | +deadline | id:launch
+[new]    Integration & QA      | 5d  | @alice @bob      | after:design,engineering | id:qa
+[!]      Performance testing   | 2d  | @bob             | after:qa
+>> v2.0 Release                | after:qa               | +deadline
 ~~~
 
-## Quick Start
+**What this demonstrates:**
+- `[done]` `[active]` `[?]` `[!]` `[new]` — task statuses with distinct colours
+- `parallel: name` — two workstreams running concurrently from the same anchor
+- `after:phase1` / `after:design,engineering` — explicit AND dependencies
+- `+delayed` — orange ghost bar shows slip; accent stripe on bar
+- `>> milestone` — diamond markers; `+deadline` draws a full-height hairline
+- `%60` progress fill inside bars · `@assignee` initials on bars
+- Today line drawn automatically
+
+---
+
+## Quick start
+
+**Try it live:** [angshuman.github.io/yatt](https://angshuman.github.io/yatt/)
 
 ```bash
 npm install yatt
 ```
 
 ```js
-import { parse, render } from 'yatt'
+import { render } from 'yatt'
 
-const doc = parse(source)
-const svg = render(doc, { theme: 'default', width: 900 })
+const { html, errors } = render(source, 'gantt')
+// html is a self-contained <svg> string
 ```
+
+Or drop a `yatt` fence in any Markdown file:
+
+~~~md
+```yatt
+title: My Project
+start: 2026-03-01
+
+[done]   Research   | 3d | @alice | id:r
+[active] Build      | 1w | @bob   | after:r | %40
+[new]    Ship it    | 1d | @alice | after:build
+>> Launch           | after:ship-it | +deadline
+```
+~~~
+
+## Key concepts
+
+| Concept | Syntax | Notes |
+|---|---|---|
+| Sequential (default) | just write tasks top-to-bottom | each starts when the previous ends |
+| Parallel block | `parallel: name` … `end: name` | all run from the same anchor; don't advance it |
+| Named dependency | `id:slug` on source, `after:slug` on dependent | doc-global; works across blocks |
+| AND dependency | `after:a,b` | starts after both complete |
+| OR dependency | `after:a\|b` | starts after either completes |
+| Business days | `5bd` or header `schedule: business-days` | skips Sat/Sun |
+| Subtasks | leading `.` or `..` | sequential within parent |
+
+## Status symbols
+
+Both forms are accepted:
+
+| Sigil | Word | Colour |
+|---|---|---|
+| `[x]` | `[done]` | green |
+| `[~]` | `[active]` | blue |
+| `[ ]` | `[new]` | slate |
+| `[!]` | `[blocked]` | red + stripes |
+| `[?]` | `[at-risk]` | amber |
+| `[>]` | `[deferred]` | purple (skipped in chain) |
+| `[_]` | `[cancelled]` | grey + strikethrough |
+| `[=]` | `[review]` | violet |
+| `[o]` | `[paused]` | slate-dark |
 
 ## Documentation
 
-- [SPEC.md](./SPEC.md) — Full language specification
-- [docs/syntax.md](./docs/syntax.md) — Tutorial-style syntax guide
+- [SPEC.md](./SPEC.md) — Full language specification with formal grammar
+- [docs/syntax.md](./docs/syntax.md) — Tutorial-style guide, learn by example
 - [docs/integrations.md](./docs/integrations.md) — VS Code, Obsidian, Remark, Browser
-- [examples/](./examples/) — Realistic example files
 
 ## Integrations
 
 | Environment | How | Source |
 |---|---|---|
-| VS Code | Extension — renders `yatt` fences in Markdown preview | [integrations/vscode/](./integrations/vscode/) |
-| Obsidian | Community plugin — live preview in notes | [integrations/obsidian/](./integrations/obsidian/) |
-| Remark / MDX | `remarkYatt` plugin for Docusaurus, Next.js, Astro | [integrations/remark/](./integrations/remark/) |
-| Browser | Standalone `<script>` tag, no framework needed | [integrations/browser/](./integrations/browser/) |
+| **VS Code** | Extension — renders `yatt` fences in Markdown preview live | [integrations/vscode/](./integrations/vscode/) |
+| **Obsidian** | Community plugin — live preview in notes | [integrations/obsidian/](./integrations/obsidian/) |
+| **Remark / MDX** | `remarkYatt` plugin for Docusaurus, Next.js, Astro | [integrations/remark/](./integrations/remark/) |
+| **Browser** | Standalone `<script>` tag, zero framework | [integrations/browser/](./integrations/browser/) |
+
+## Examples
+
+| File | Description |
+|---|---|
+| [software-release.yatt](./examples/software-release.yatt) | Multi-team platform v3.0 release — all features |
+| [personal-project.yatt](./examples/personal-project.yatt) | Solo dev portfolio redesign |
+| [construction.yatt](./examples/construction.yatt) | Commercial fit-out — `bd` durations, +external, regulatory milestones |
 
 ## License
 

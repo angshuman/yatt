@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="508" viewBox="0 0 1200 508" font-family="ui-sans-serif, system-ui, sans-serif">
+<defs>
+
+  <pattern id="blocked-stripe" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+    <rect width="4" height="8" fill="#ef4444" opacity="0.5"/>
+  </pattern>
+<clipPath id="chart-clip">
+    <rect x="216" y="0" width="968" height="508"/>
+  </clipPath>
+</defs>
+<rect x="0" y="0" width="1200" height="508" fill="#ffffff"/>
+<rect x="0" y="0" width="216" height="508" fill="#f8fafc"/>
+<line x1="216" y1="60" x2="1184" y2="60" stroke="#e2e8f0" stroke-width="1"/>
+<line x1="234.09345794392524" y1="60" x2="234.09345794392524" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="234.09345794392524" y1="54" x2="234.09345794392524" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="237.09345794392524" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">25 Mar</text>
+<line x1="275.21495327102804" y1="60" x2="275.21495327102804" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="275.21495327102804" y1="54" x2="275.21495327102804" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="278.21495327102804" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">26 Mar</text>
+<line x1="316.33644859813086" y1="60" x2="316.33644859813086" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="316.33644859813086" y1="54" x2="316.33644859813086" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="319.33644859813086" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">27 Mar</text>
+<line x1="357.4579439252336" y1="60" x2="357.4579439252336" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="357.4579439252336" y1="54" x2="357.4579439252336" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="360.4579439252336" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">28 Mar</text>
+<line x1="398.57943925233644" y1="60" x2="398.57943925233644" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="398.57943925233644" y1="54" x2="398.57943925233644" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="401.57943925233644" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">29 Mar</text>
+<line x1="439.70093457943926" y1="60" x2="439.70093457943926" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="439.70093457943926" y1="54" x2="439.70093457943926" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="442.70093457943926" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">30 Mar</text>
+<line x1="480.8224299065421" y1="60" x2="480.8224299065421" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="480.8224299065421" y1="54" x2="480.8224299065421" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="483.8224299065421" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">31 Mar</text>
+<line x1="521.9439252336449" y1="60" x2="521.9439252336449" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="521.9439252336449" y1="54" x2="521.9439252336449" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="524.9439252336449" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">1 Apr</text>
+<line x1="563.0654205607477" y1="60" x2="563.0654205607477" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="563.0654205607477" y1="54" x2="563.0654205607477" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="566.0654205607477" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">2 Apr</text>
+<line x1="604.1869158878505" y1="60" x2="604.1869158878505" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="604.1869158878505" y1="54" x2="604.1869158878505" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="607.1869158878505" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">3 Apr</text>
+<line x1="645.3084112149533" y1="60" x2="645.3084112149533" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="645.3084112149533" y1="54" x2="645.3084112149533" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="648.3084112149533" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">4 Apr</text>
+<line x1="686.4299065420561" y1="60" x2="686.4299065420561" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="686.4299065420561" y1="54" x2="686.4299065420561" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="689.4299065420561" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">5 Apr</text>
+<line x1="727.5514018691589" y1="60" x2="727.5514018691589" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="727.5514018691589" y1="54" x2="727.5514018691589" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="730.5514018691589" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">6 Apr</text>
+<line x1="768.6728971962617" y1="60" x2="768.6728971962617" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="768.6728971962617" y1="54" x2="768.6728971962617" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="771.6728971962617" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">7 Apr</text>
+<line x1="809.7943925233644" y1="60" x2="809.7943925233644" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="809.7943925233644" y1="54" x2="809.7943925233644" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="812.7943925233644" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">8 Apr</text>
+<line x1="850.9158878504674" y1="60" x2="850.9158878504674" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="850.9158878504674" y1="54" x2="850.9158878504674" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="853.9158878504674" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">9 Apr</text>
+<line x1="892.0373831775701" y1="60" x2="892.0373831775701" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="892.0373831775701" y1="54" x2="892.0373831775701" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="895.0373831775701" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">10 Apr</text>
+<line x1="933.1588785046729" y1="60" x2="933.1588785046729" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="933.1588785046729" y1="54" x2="933.1588785046729" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="936.1588785046729" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">11 Apr</text>
+<line x1="974.2803738317757" y1="60" x2="974.2803738317757" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="974.2803738317757" y1="54" x2="974.2803738317757" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="977.2803738317757" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">12 Apr</text>
+<line x1="1015.4018691588785" y1="60" x2="1015.4018691588785" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="1015.4018691588785" y1="54" x2="1015.4018691588785" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="1018.4018691588785" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">13 Apr</text>
+<line x1="1056.5233644859813" y1="60" x2="1056.5233644859813" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="1056.5233644859813" y1="54" x2="1056.5233644859813" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="1059.5233644859813" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">14 Apr</text>
+<line x1="1097.6448598130842" y1="60" x2="1097.6448598130842" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="1097.6448598130842" y1="54" x2="1097.6448598130842" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="1100.6448598130842" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">15 Apr</text>
+<line x1="1138.766355140187" y1="60" x2="1138.766355140187" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="1138.766355140187" y1="54" x2="1138.766355140187" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="1141.766355140187" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">16 Apr</text>
+<line x1="1179.8878504672898" y1="60" x2="1179.8878504672898" y2="508" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+<line x1="1179.8878504672898" y1="54" x2="1179.8878504672898" y2="60" stroke="#64748b" stroke-width="1"/>
+<text x="1182.8878504672898" y="52" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">17 Apr</text>
+<rect x="439.70093457943926" y="132" width="287.85046728971963" height="108" fill="rgba(99,102,241,0.06)" rx="4" clip-path="url(#chart-clip)"/>
+<line x1="437.70093457943926" y1="136" x2="437.70093457943926" y2="236" stroke="#6366f1" stroke-width="2" opacity="0.7"/>
+<rect x="439.70093457943926" y="240" width="411.2149532710281" height="144" fill="rgba(99,102,241,0.06)" rx="4" clip-path="url(#chart-clip)"/>
+<line x1="437.70093457943926" y1="244" x2="437.70093457943926" y2="380" stroke="#6366f1" stroke-width="2" opacity="0.7"/>
+<circle cx="22" cy="78" r="4" fill="#22c55e"/>
+<text x="32" y="82" fill="#1e293b" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Discovery &amp; planning</text>
+<rect x="234.09345794392524" y="66.3" width="205.60747663551402" height="23.400000000000002" fill="#22c55e" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<circle cx="428.70093457943926" cy="78" r="9" fill="#fff" stroke="#22c55e" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="428.70093457943926" y="81.5" fill="#1e293b" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">A</text>
+<text x="240.09345794392524" y="82" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Discovery &amp; planning</text>
+<rect x="0" y="96" width="1200" height="36" fill="rgba(0,0,0,0.015)"/>
+<text x="32" y="118" fill="#1e293b" font-size="12" font-style="italic" font-family="ui-sans-serif, system-ui, sans-serif">Kickoff complete</text>
+<polygon points="439.70093457943926,105 448.70093457943926,114 439.70093457943926,123 430.70093457943926,114" fill="#d97706"/>
+<text x="452.70093457943926" y="118" fill="#92400e" font-size="10" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">Kickoff complete</text>
+<rect x="16" y="134" width="168" height="32" fill="#eff6ff" rx="3"/>
+<text x="24" y="154" fill="#1d4ed8" font-size="12" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">design</text>
+<rect x="0" y="168" width="1200" height="36" fill="rgba(0,0,0,0.015)"/>
+<circle cx="22" cy="186" r="4" fill="#22c55e"/>
+<text x="32" y="190" fill="#1e293b" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">UX wireframes</text>
+<rect x="439.70093457943926" y="174.3" width="164.48598130841128" height="23.400000000000002" fill="#22c55e" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<rect x="439.70093457943926" y="174.3" width="164.48598130841128" height="23.400000000000002" fill="rgba(0,0,0,0.2)" rx="3" clip-path="url(#chart-clip)"/>
+<circle cx="593.1869158878505" cy="186" r="9" fill="#fff" stroke="#22c55e" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="593.1869158878505" y="189.5" fill="#1e293b" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">C</text>
+<text x="445.70093457943926" y="190" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">UX wireframes</text>
+<circle cx="22" cy="222" r="4" fill="#3b82f6"/>
+<text x="32" y="226" fill="#1e293b" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Visual design</text>
+<rect x="604.1869158878505" y="210.3" width="123.36448598130835" height="23.400000000000002" fill="#3b82f6" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<rect x="604.1869158878505" y="210.3" width="74.018691588785" height="23.400000000000002" fill="rgba(0,0,0,0.2)" rx="3" clip-path="url(#chart-clip)"/>
+<rect x="577.9719626168226" y="213.81" width="104.85981308411209" height="16.38" fill="#f59e0b" rx="3" opacity="0.2" clip-path="url(#chart-clip)"/>
+<rect x="604.1869158878505" y="210.3" width="3" height="23.400000000000002" fill="#f59e0b" rx="1" clip-path="url(#chart-clip)"/>
+<circle cx="716.5514018691589" cy="222" r="9" fill="#fff" stroke="#3b82f6" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="716.5514018691589" y="225.5" fill="#1e293b" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">C</text>
+<text x="610.1869158878505" y="226" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Visual design</text>
+<rect x="0" y="240" width="1200" height="36" fill="rgba(0,0,0,0.015)"/>
+<rect x="16" y="242" width="168" height="32" fill="#eff6ff" rx="3"/>
+<text x="24" y="262" fill="#1d4ed8" font-size="12" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">engineering</text>
+<circle cx="22" cy="294" r="4" fill="#22c55e"/>
+<text x="32" y="298" fill="#1e293b" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">API scaffold</text>
+<rect x="439.70093457943926" y="282.3" width="123.36448598130846" height="23.400000000000002" fill="#22c55e" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<circle cx="552.0654205607477" cy="294" r="9" fill="#fff" stroke="#22c55e" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="552.0654205607477" y="297.5" fill="#1e293b" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">B</text>
+<text x="445.70093457943926" y="298" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">API scaffold</text>
+<rect x="0" y="312" width="1200" height="36" fill="rgba(0,0,0,0.015)"/>
+<circle cx="22" cy="330" r="4" fill="#3b82f6"/>
+<text x="32" y="334" fill="#1e293b" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Auth service</text>
+<rect x="563.0654205607477" y="318.3" width="164.48598130841117" height="23.400000000000002" fill="#3b82f6" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<rect x="563.0654205607477" y="318.3" width="74.01869158878503" height="23.400000000000002" fill="rgba(0,0,0,0.2)" rx="3" clip-path="url(#chart-clip)"/>
+<circle cx="716.5514018691589" cy="330" r="9" fill="#fff" stroke="#3b82f6" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="716.5514018691589" y="333.5" fill="#1e293b" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">B</text>
+<text x="569.0654205607477" y="334" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Auth service</text>
+<circle cx="22" cy="366" r="4" fill="#f59e0b"/>
+<text x="32" y="370" fill="#1e293b" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Core features</text>
+<rect x="563.0654205607477" y="354.3" width="287.85046728971963" height="23.400000000000002" fill="#f59e0b" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<rect x="501.8971962616823" y="357.81" width="244.6728971962617" height="16.38" fill="#f59e0b" rx="3" opacity="0.2" clip-path="url(#chart-clip)"/>
+<rect x="563.0654205607477" y="354.3" width="3" height="23.400000000000002" fill="#f59e0b" rx="1" clip-path="url(#chart-clip)"/>
+<circle cx="839.9158878504674" cy="366" r="9" fill="#fff" stroke="#f59e0b" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="839.9158878504674" y="369.5" fill="#1e293b" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">A</text>
+<text x="569.0654205607477" y="370" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Core features</text>
+<rect x="0" y="384" width="1200" height="36" fill="rgba(0,0,0,0.015)"/>
+<circle cx="22" cy="402" r="4" fill="#94a3b8"/>
+<text x="32" y="406" fill="#1e293b" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Integration &amp; QA</text>
+<rect x="850.9158878504674" y="390.3" width="205.607476635514" height="23.400000000000002" fill="#94a3b8" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<circle cx="1045.5233644859813" cy="402" r="9" fill="#fff" stroke="#94a3b8" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="1045.5233644859813" y="405.5" fill="#1e293b" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">B</text>
+<circle cx="1031.1233644859813" cy="402" r="9" fill="#fff" stroke="#94a3b8" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="1031.1233644859813" y="405.5" fill="#1e293b" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">A</text>
+<text x="856.9158878504674" y="406" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Integration &amp; QA</text>
+<circle cx="22" cy="438" r="4" fill="#ef4444"/>
+<text x="32" y="442" fill="#1e293b" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Performance testing</text>
+<rect x="1056.5233644859813" y="426.3" width="82.24299065420564" height="23.400000000000002" fill="#ef4444" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<rect x="1056.5233644859813" y="426.3" width="82.24299065420564" height="23.400000000000002" fill="url(#blocked-stripe)" rx="3" clip-path="url(#chart-clip)"/>
+<circle cx="1127.766355140187" cy="438" r="9" fill="#fff" stroke="#ef4444" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="1127.766355140187" y="441.5" fill="#1e293b" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">B</text>
+<text x="1062.5233644859813" y="442" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Performance testing</text>
+<rect x="0" y="456" width="1200" height="36" fill="rgba(0,0,0,0.015)"/>
+<text x="32" y="478" fill="#1e293b" font-size="12" font-style="italic" font-family="ui-sans-serif, system-ui, sans-serif">v2.0 Release</text>
+<line x1="1056.5233644859813" y1="60" x2="1056.5233644859813" y2="508" stroke="#ef4444" stroke-width="1" opacity="0.35" stroke-dasharray="4,3" clip-path="url(#chart-clip)"/>
+<polygon points="1056.5233644859813,465 1065.5233644859813,474 1056.5233644859813,483 1047.5233644859813,474" fill="#d97706"/>
+<text x="1069.5233644859813" y="478" fill="#92400e" font-size="10" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">v2.0 Release</text>
+<line x1="234.09345794392524" y1="60" x2="234.09345794392524" y2="508" stroke="#ef4444" stroke-width="1.5" opacity="0.7" stroke-dasharray="4,3"/>
+<text x="237.09345794392524" y="56" fill="#ef4444" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif">Today</text>
+<line x1="216" y1="0" x2="216" y2="508" stroke="#e2e8f0" stroke-width="1"/>
+</svg>

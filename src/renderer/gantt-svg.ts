@@ -430,6 +430,24 @@ export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): strin
         }));
       }
 
+      // +delayed: ghost bar behind (shifted left by 20%) to show slip, plus warning pip
+      if (task.modifiers.includes('delayed')) {
+        const ghostW = barW * 0.85;
+        const ghostX = barX - ghostW * 0.25;
+        parts.push(rect(ghostX, barY + barH * 0.15, ghostW, barH * 0.7, {
+          fill: '#f59e0b',
+          rx: '3',
+          opacity: '0.2',
+          'clip-path': 'url(#chart-clip)',
+        }));
+        // Orange left-edge accent
+        parts.push(rect(barX, barY, 3, barH, {
+          fill: '#f59e0b',
+          rx: '1',
+          'clip-path': 'url(#chart-clip)',
+        }));
+      }
+
       // Deadline hairline
       if (task.modifiers.includes('deadline') && task.dueDate) {
         const dlX = dateToX(new Date(task.dueDate + 'T00:00:00Z'));
@@ -491,11 +509,24 @@ export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): strin
       if (!ms.computedDate) continue;
       const dmx = dateToX(ms.computedDate);
       const dmSize = opts.rowHeight * 0.5;
+
+      // +deadline milestone: full-height red hairline
+      if (ms.modifiers.includes('deadline')) {
+        parts.push(line(dmx, opts.headerHeight, dmx, totalHeight, {
+          stroke: '#ef4444',
+          'stroke-width': '1',
+          opacity: '0.35',
+          'stroke-dasharray': '4,3',
+          'clip-path': 'url(#chart-clip)',
+        }));
+      }
+
       parts.push(diamond(dmx, midY, dmSize, isDark ? '#fbbf24' : '#d97706'));
       // Milestone label
-      parts.push(text(dmx + dmSize / 2 + 4, midY + 4, ms.name.slice(0, 15), {
+      parts.push(text(dmx + dmSize / 2 + 4, midY + 4, ms.name.slice(0, 18), {
         fill: isDark ? '#fbbf24' : '#92400e',
         'font-size': '10',
+        'font-weight': '600',
         'font-family': opts.fontFamily,
         'clip-path': 'url(#chart-clip)',
       }));
