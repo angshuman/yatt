@@ -1,0 +1,78 @@
+title: Portfolio Redesign
+start: 2026-02-02
+schedule: business-days
+owner: @me
+version: 1.0
+
+// Solo dev portfolio site redesign.
+// Goal: ship a new portfolio by end of February.
+// Mix of design, dev, and content work — mostly sequential with
+// a couple of parallel phases where design and content can overlap.
+
+# Research & Planning
+
+[x] Audit current site              | 2h  | @me | %100 | id:audit
+[x] Collect inspiration references  | 3h  | @me | %100 | id:inspo | after:audit
+[x] List all case studies to write  | 1h  | @me | %100 | id:case-study-list
+[x] Choose tech stack               | 2h  | @me | %100 | id:stack-chosen
+// Went with Astro + Tailwind. Rejected Next.js (too heavy) and plain HTML (too slow to update).
+
+# Design
+
+[x] Sketch layout concepts         | 1d  | @me | %100 | id:sketches | after:inspo
+[x] Choose color palette & type    | 2h  | @me | %100 | id:visual-system | after:sketches
+[~] High-fidelity mockups          | 2d  | @me | %65  | id:mockups | after:visual-system
+.  [x] Homepage mockup             | 3h  | @me | %100
+.  [x] Case study page             | 3h  | @me | %100
+.  [~] About & contact page        | 2h  | @me | %40
+.  [ ] 404 and empty states        | 1h  | @me
+[ ] Mobile layout review           | 1h  | @me | id:mobile-review | after:mockups
+>> Design approved                  | id:design-done | after:mobile-review
+
+# Content (parallel with late design)
+
+parallel: content | after:case-study-list
+[~] Case study: E-commerce rebuild  | 1d  | @me | %80 | id:cs-ecomm
+[~] Case study: SaaS dashboard      | 1d  | @me | %50 | id:cs-saas | after:cs-ecomm
+[ ] Case study: Mobile app          | 1d  | @me | id:cs-mobile | after:cs-saas
+[ ] About page copy                 | 2h  | @me | id:about-copy
+[ ] Homepage headline & sub-copy    | 1h  | @me | id:home-copy | after:about-copy
+end: content
+
+# Development
+
+parallel: dev-setup | after:design-done
+[ ] Scaffold Astro project          | 2h  | @me | id:scaffold
+[ ] Configure Tailwind & fonts      | 1h  | @me | after:scaffold | id:tailwind-done
+[ ] Set up component library        | 3h  | @me | after:tailwind-done | id:components-done
+[ ] Deploy pipeline (Vercel)        | 1h  | @me | id:deploy-pipeline
+end: dev-setup
+
+parallel: dev-pages | after:dev-setup,content
+[ ] Build homepage                  | 3h  | @me | id:homepage-built | after:components-done,home-copy
+[ ] Build case study template       | 4h  | @me | id:cs-template | after:components-done
+[ ] Populate case studies           | 2h  | @me | after:cs-template,cs-mobile | id:cs-done
+[ ] Build about & contact pages     | 2h  | @me | after:components-done,about-copy
+end: dev-pages
+
+[ ] Dark mode implementation        | 2h  | @me | after:dev-pages | id:dark-mode
+[ ] Animations & scroll effects     | 3h  | @me | after:dark-mode
+[ ] Cross-browser testing           | 2h  | @me | after:dev-pages | id:xbrowser
+
+# Polish & Launch
+
+[ ] Lighthouse audit & fixes        | 3h  | @me | after:dev-pages | id:lighthouse
+.  [ ] Performance (target 95+)     | 1h  | @me | id:perf-fix
+.  [ ] Accessibility (target 95+)   | 1h  | @me | id:a11y-fix
+.  [ ] SEO meta tags                | 1h  | @me | id:seo-fix
+[ ] Write README for site repo      | 1h  | @me | after:lighthouse
+[ ] Final review pass               | 2h  | @me | after:lighthouse,xbrowser | id:final-review
+
+>> Ship to production               | id:launched | after:final-review | +deadline | <2026-02-28
+
+# Nice to Haves
+
+[>] Blog section                    | 2d  | @me
+// Deferred: no content ready, don't want to ship empty
+[>] Project filter / search         | 1d  | @me
+// Deferred: only 6 projects, not worth it yet

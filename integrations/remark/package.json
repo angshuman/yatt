@@ -1,0 +1,22 @@
+{
+  "name": "remark-yatt",
+  "version": "0.1.0",
+  "description": "Remark plugin to render yatt task blocks as Gantt SVG",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "peerDependencies": {
+    "unified": ">=11"
+  },
+  "dependencies": {
+    "yatt": "file:../../"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.0",
+    "typescript": "^5.4.0",
+    "unified": "^11.0.0"
+  }
+}

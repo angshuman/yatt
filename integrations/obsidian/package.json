@@ -1,0 +1,17 @@
+{
+  "name": "obsidian-yatt",
+  "version": "0.1.0",
+  "description": "Obsidian plugin to render yatt task blocks as Gantt charts",
+  "main": "main.js",
+  "scripts": {
+    "build": "esbuild main.ts --bundle --platform=node --external:obsidian --outfile=main.js"
+  },
+  "dependencies": {
+    "yatt": "file:../../"
+  },
+  "devDependencies": {
+    "obsidian": "latest",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  }
+}

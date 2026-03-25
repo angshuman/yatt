@@ -1,0 +1,55 @@
+{
+  "name": "vscode-yatt",
+  "displayName": "YATT — Task Tracker",
+  "description": "Renders yatt task blocks in Markdown preview and provides .yatt file support",
+  "version": "0.1.0",
+  "publisher": "yatt",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other", "Visualization"],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "yatt",
+        "aliases": ["YATT", "yatt"],
+        "extensions": [".yatt"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "yatt",
+        "scopeName": "source.yatt",
+        "path": "./syntaxes/yatt.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.yatt.codeblock",
+        "path": "./syntaxes/yatt.tmLanguage.json",
+        "injectTo": ["text.html.markdown"],
+        "embeddedLanguages": {
+          "meta.embedded.block.yatt": "yatt"
+        }
+      }
+    ],
+    "markdown.markdownItPlugins": true,
+    "commands": [
+      {
+        "command": "yatt.openPreview",
+        "title": "YATT: Open Gantt Preview",
+        "icon": "$(gantt-chart)"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "esbuild extension.ts --bundle --platform=node --outfile=extension.js --external:vscode"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "yatt": "file:../../"
+  }
+}

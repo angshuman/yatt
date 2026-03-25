@@ -1,0 +1,132 @@
+title: Platform v3.0 Release
+start: 2026-01-05
+finish: 2026-04-30
+schedule: business-days
+owner: @eng-lead
+version: 3.0-rc1
+
+// Multi-team release plan for the v3.0 platform overhaul.
+// Teams: Platform (core infra), Product (features), QA, Ops, Security.
+// All durations in business days unless noted otherwise.
+
+# Program Setup
+
+[x] Kickoff meeting              | 1bd  | @eng-lead | @pm | #ceremony | %100 | id:kickoff
+[x] Draft RACI matrix            | 2bd  | @pm       | %100
+[x] Finalize feature list v3.0   | 3bd  | @pm | @product-lead | %100 | id:scope-locked
+>> Scope freeze                   | id:scope-freeze | after:scope-locked
+
+# Architecture & Infrastructure
+
+parallel: infra | after:scope-freeze
+[x] Infra capacity planning      | 3bd  | @sre-lead  | #platform | %100 | id:infra-plan | $PLAT-101
+[x] New DB cluster provisioning  | 5bd  | @sre-alice | #platform | %100 | id:db-cluster | $PLAT-102 | after:infra-plan
+[~] Kubernetes upgrade to 1.32   | 4bd  | @sre-bob   | #platform | %70  | id:k8s-upgrade | $PLAT-103 | after:infra-plan | +at-risk
+[ ] Service mesh migration       | 5bd  | @sre-alice | #platform | id:mesh-done   | $PLAT-104 | after:k8s-upgrade
+end: infra
+
+// Security track runs concurrently with infra work
+parallel: security | after:scope-freeze
+[x] Threat model review          | 3bd  | @sec-lead  | #security | %100 | id:threat-model | $SEC-201
+[~] Penetration testing (ext)    | 10bd | @pentest-vendor | #security | %40 | id:pentest | $SEC-202 | +external | +waiting | after:threat-model
+[ ] Remediation: critical issues | 3bd  | @sec-eng   | #security | id:sec-remediation | $SEC-203 | after:pentest
+[ ] Security sign-off            | 1bd  | @sec-lead  | #security | id:sec-approved | after:sec-remediation
+end: security
+
+>> Infrastructure ready          | id:infra-ready | after:infra,security
+
+# Feature Development
+
+// Feature teams run in parallel after infrastructure is ready
+
+parallel: feature-auth | after:infra-ready
+[~] SSO integration design       | 3bd  | @auth-alice | #auth | %80  | id:sso-design | $FEAT-301
+[~] SAML provider implementation | 5bd  | @auth-alice | #auth | %35  | id:sso-impl   | $FEAT-302 | after:sso-design | %35
+[ ] OAuth 2.1 refresh flow       | 3bd  | @auth-bob   | #auth | id:oauth-done  | $FEAT-303 | after:sso-design
+.  [ ] Token rotation logic      | 1bd  | @auth-bob   | #auth | id:token-rotation
+.  [ ] Revocation endpoint       | 1bd  | @auth-bob   | after:token-rotation
+.  [ ] Integration tests         | 1bd  | @auth-bob   | after:token-rotation
+[ ] Auth regression suite        | 2bd  | @qa-carol   | #auth | #qa | after:sso-impl,oauth-done | id:auth-qa-done
+end: feature-auth
+
+parallel: feature-billing | after:infra-ready
+[ ] Billing engine v2 design     | 4bd  | @billing-dan  | #billing | id:billing-design | $FEAT-401
+[ ] Stripe v3 SDK migration      | 3bd  | @billing-dan  | #billing | id:stripe-done    | $FEAT-402 | after:billing-design
+.  [x] Upgrade client library    | 0.5bd | @billing-dan  | %100
+.  [ ] Update webhook handlers   | 1bd  | @billing-dan
+.  [ ] Update payment intents    | 1bd  | @billing-dan  | after:stripe-done
+[ ] Invoice PDF generator        | 3bd  | @billing-eve  | #billing | id:invoice-gen    | $FEAT-403 | after:billing-design
+[ ] Multi-currency support       | 4bd  | @billing-eve  | #billing | id:currency-done  | $FEAT-404 | after:billing-design | !high
+[?] Crypto payment gateway       | 5bd  | @billing-dan  | #billing | +at-risk | $FEAT-405 | after:billing-design
+// Crypto gateway is at-risk due to regulatory uncertainty in key markets
+[>] Recurring billing v2         | 6bd  | #billing      | $FEAT-406
+// Deferred to v3.1 — scope cut approved 2026-01-28
+[ ] Billing regression suite     | 2bd  | @qa-frank     | #billing | #qa | after:stripe-done,invoice-gen,currency-done | id:billing-qa-done
+end: feature-billing
+
+parallel: feature-api | after:infra-ready
+[ ] GraphQL schema v3 design     | 4bd  | @api-grace  | #api | id:gql-design   | $FEAT-501
+[ ] REST → GraphQL migration     | 6bd  | @api-grace  | #api | id:gql-impl     | $FEAT-502 | after:gql-design
+[ ] Rate limiting v2             | 3bd  | @api-henry  | #api | id:ratelimit    | $FEAT-503 | after:gql-design
+[ ] API versioning strategy      | 2bd  | @api-grace  | #api | id:api-versioning | $FEAT-504 | after:gql-design
+[ ] API contract tests           | 3bd  | @qa-iris    | #api | #qa | after:gql-impl,ratelimit | id:api-qa-done
+end: feature-api
+
+>> Feature development complete  | id:features-done | after:feature-auth,feature-billing,feature-api
+
+# Integration & QA
+
+[~] Cross-service integration tests | 5bd | @qa-lead | @qa-carol | @qa-frank | @qa-iris | #qa | %15 | id:integration-tests | after:features-done | $QA-601
+[ ] Performance benchmarking        | 3bd | @sre-bob  | #qa | #platform | after:integration-tests | id:perf-done | $QA-602
+[ ] Accessibility audit (ext)       | 4bd | @a11y-vendor | #qa | +external | after:features-done | id:a11y-done | $QA-603
+[ ] Load testing — 10x traffic      | 2bd | @sre-alice   | #qa | #platform | after:perf-done | id:load-test | $QA-604
+[_] Manual exploratory — cancelled  | 3bd | @qa-lead | #qa
+// Cancelled: replaced by expanded automated regression coverage
+
+>> QA complete                   | id:qa-done | after:integration-tests,perf-done,a11y-done,load-test
+
+# Staging & UAT
+
+parallel: staging | after:qa-done
+[ ] Deploy to staging env        | 1bd  | @sre-alice  | #ops | id:staging-deploy | $OPS-701
+[ ] Smoke test staging           | 1bd  | @qa-carol   | #qa  | after:staging-deploy
+[ ] UAT — internal stakeholders  | 3bd  | @pm | @product-lead | #uat | after:staging-deploy | id:uat-internal
+[ ] UAT — beta customers (ext)   | 5bd  | @pm | +external | #uat | after:staging-deploy | id:uat-beta
+end: staging
+
+>> UAT sign-off                  | id:uat-done | after:staging | +deadline | <2026-04-10
+
+# Release Preparation
+
+[ ] Release notes v3.0           | 2bd  | @pm | @docs-jake | #docs | after:qa-done | id:release-notes
+[ ] Migration guide (customers)  | 3bd  | @docs-jake | #docs | after:features-done | id:migration-guide
+[ ] Runbook: v3.0 deployment     | 2bd  | @sre-lead  | #ops  | after:qa-done | id:runbook
+[ ] Rollback procedure tested    | 1bd  | @sre-alice | #ops  | after:staging-deploy | id:rollback-ready
+[ ] Change advisory board review | 1bd  | @sre-lead | @sec-lead | @pm | #ops | after:uat-done | id:cab-approved | +deadline | <2026-04-13
+
+>> Go / No-go decision           | id:go-nogo | after:uat-done,rollback-ready,cab-approved | +deadline | >2026-04-14
+
+# Production Release
+
+[ ] Database migrations (prod)   | 2bd  | @sre-alice | #ops | after:go-nogo | id:db-migrations | !critical | +fixed | >2026-04-14
+[ ] Blue-green deploy: v3.0      | 1bd  | @sre-bob   | #ops | after:db-migrations | id:prod-deploy | !critical
+[ ] Enable feature flags 10%     | 0.5bd | @sre-lead | #ops | after:prod-deploy | id:canary-10
+[ ] Canary monitoring — 24h      | 1bd  | @sre-alice | @sre-bob | #ops | after:canary-10 | id:canary-ok
+[ ] Enable feature flags 100%    | 0.5bd | @sre-lead | #ops | after:canary-ok | id:full-rollout
+[ ] Notify customers: GA email   | 0.5bd | @pm | #comms | after:full-rollout
+
+>> v3.0 Generally Available      | id:v3-ga | after:full-rollout | +deadline | <2026-04-30
+
+# Post-Launch
+
+[ ] Hypercare monitoring — 5d    | 5bd  | @sre-alice | @sre-bob | #ops | after:v3-ga | id:hypercare
+[ ] v3.0 retrospective           | 1bd  | @eng-lead | @pm | #ceremony | after:hypercare
+[ ] Deprecate v2 API (notice)    | 1bd  | @api-grace | #api | after:v3-ga | >2026-05-01
+[ ] Update public roadmap        | 1bd  | @pm | #comms | after:v3-ga
+
+# Recurring Ceremonies
+
+*weekly    Sprint standup        | 15m | @eng-lead | @pm | #ceremony
+*biweekly  Sprint review         | 1h  | @eng-lead | @pm | @product-lead | #ceremony
+*biweekly  Architecture sync     | 1h  | @eng-lead | @sre-lead | @sec-lead | #ceremony
+*monthly   Executive status      | 1h  | @pm | @exec-sponsor | #ceremony

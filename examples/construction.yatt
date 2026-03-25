@@ -1,0 +1,173 @@
+title: Meridian House — Level 4 Commercial Fit-Out
+start: 2026-02-02
+finish: 2026-07-31
+schedule: business-days
+owner: @project-mgr
+version: tender-rev3
+
+// Commercial fit-out: 1,200 sqm office tenancy, 4th floor.
+// Client: Meridian Financial Group.
+// Head contractor: Apex Interiors Pty Ltd.
+// Duration units: bd = business days throughout.
+// +external = vendor, council, or statutory body — not under our control.
+// +fixed = locked booking (crane, hoist, hired plant) — cannot be moved.
+// +waiting = submitted, awaiting response from external party.
+
+# Regulatory & Approvals
+
+[~] Development application (DA) lodgement    | 5bd   | @project-mgr | #approvals | +external | id:da-lodged | %80 | $CNCL-001
+[!] DA determination — council               | 20bd  | @project-mgr | #approvals | +external | +waiting | id:da-approved | after:da-lodged | $CNCL-002
+// Council has 20 business days statutory period. Currently awaiting formal acknowledgement.
+[ ] Building permit application               | 3bd   | @certifier   | #approvals | id:bp-applied | after:da-approved
+[ ] Building permit issued                    | 10bd  | @certifier   | #approvals | +external | id:bp-issued | after:bp-applied | $CNCL-003
+[ ] Obtain occupation certificate             | 5bd   | @certifier   | #approvals | +external | id:oc-prereq | +deadline | <2026-07-25 | $CNCL-004
+>> Regulatory green-light                      | id:reg-clear | after:bp-issued
+
+# Demolition & Strip-Out
+
+[ ] Demolition scope sign-off                | 2bd   | @project-mgr | @client-rep | #demo | after:reg-clear | id:demo-scope
+[ ] Asbestos clearance inspection (ext)      | 3bd   | @asbestos-contractor | #demo | +external | id:asbestos-clear | after:demo-scope | $ENV-101
+// External hygienist required before any demolition work commences — statutory requirement.
+[ ] Strip-out: existing partitions           | 8bd   | @demo-crew    | #demo | after:asbestos-clear | id:partitions-down
+[ ] Strip-out: existing ceilings & grid      | 5bd   | @demo-crew    | #demo | after:partitions-down | id:ceilings-down
+[ ] Strip-out: floor coverings               | 3bd   | @demo-crew    | #demo | after:partitions-down | id:floors-bare
+[ ] Remove existing HVAC ductwork            | 4bd   | @hvac-demo    | #demo | #hvac | after:ceilings-down | id:hvac-removed
+[ ] Electrical strip-out                     | 3bd   | @elec-contractor | #demo | #electrical | after:ceilings-down | id:elec-stripped
+>> Demolition complete                         | id:demo-done | after:hvac-removed,elec-stripped,floors-bare
+
+# Structure & Core Works
+
+parallel: concrete-works | after:demo-done
+[ ] Survey & set-out                         | 2bd   | @surveyor     | #structure | id:set-out | +external
+[ ] New concrete slab penetrations           | 3bd   | @concrete-crew | #structure | after:set-out | id:slab-done
+[ ] Structural steel — new partition posts   | 4bd   | @steel-fix    | #structure | after:set-out | id:steel-done | $STRC-201
+end: concrete-works
+
+parallel: services-rough-in | after:demo-done
+// Rough-in can begin once demo is done; does not need to wait for concrete
+[ ] Hydraulic rough-in                       | 6bd   | @hydraulics   | #hydraulics | id:hyd-roughin | $SVC-301
+.  [ ] Drainage re-routes                    | 2bd   | @hydraulics   | id:drainage-done
+.  [ ] Cold water supply                     | 2bd   | @hydraulics   | after:drainage-done
+.  [ ] Hot water system install              | 2bd   | @hydraulics   | after:drainage-done
+[ ] HVAC new ductwork & VAVs                 | 8bd   | @hvac-contractor | #hvac | id:hvac-roughin | $SVC-302
+[ ] Electrical rough-in: power & data       | 7bd   | @elec-contractor | #electrical | id:elec-roughin | $SVC-303
+.  [ ] DB board installation                 | 1bd   | @elec-contractor | id:db-board
+.  [ ] Power conduit runs                    | 3bd   | @elec-contractor | after:db-board | id:conduit-done
+.  [ ] Data conduit runs                     | 3bd   | @elec-contractor | after:db-board
+[ ] Fire services rough-in                   | 5bd   | @fire-contractor | #fire | id:fire-roughin | $SVC-304 | +external
+// Fire contractor is a specialist sub — their schedule is fixed around compliance inspections.
+end: services-rough-in
+
+>> Rough-in inspections                        | id:roughin-inspected | after:concrete-works,services-rough-in | +deadline
+
+[ ] Statutory inspections — services          | 3bd   | @certifier | #approvals | +external | id:services-certified | after:roughin-inspected | $CNCL-005
+// Inspector must sign off before any linings go up. Book 10bd in advance.
+
+# Linings & Partitions
+
+parallel: linings | after:services-certified,steel-done
+[ ] Plasterboard ceiling grid installation   | 6bd   | @ceiling-crew | #linings | id:grid-up
+[ ] Bulkhead & shadow line framing           | 3bd   | @ceiling-crew | #linings | after:grid-up | id:bulkheads-done
+[ ] Internal partition framing               | 8bd   | @partition-crew | #linings | id:partitions-framed | $FIT-401
+[ ] Partition board — first fix              | 5bd   | @partition-crew | #linings | after:partitions-framed | id:board-1st-fix
+[ ] Ceiling board — first fix               | 4bd   | @ceiling-crew   | #linings | after:grid-up | id:ceiling-1st
+end: linings
+
+parallel: glazing | after:partitions-framed
+[ ] Glazed partition system — measure & order | 3bd  | @glazing-supplier | #glazing | +external | id:glazing-ordered | +waiting | $FIT-402
+// 6-week manufacturing lead time for custom glazing — order ASAP.
+[ ] Glazing delivery & install               | 5bd   | @glazing-supplier | #glazing | +external | +fixed | >2026-05-18 | id:glazing-installed | after:glazing-ordered | $FIT-403
+// Delivery date locked with supplier. Hoist booking confirmed for this window.
+end: glazing
+
+// Board second fix and joinery can proceed after first-fix board
+parallel: second-fix | after:linings,glazing-installed
+[ ] Partition board — second fix & tape      | 5bd   | @partition-crew | #linings | id:board-2nd
+[ ] Ceiling board — second fix & tape       | 4bd   | @ceiling-crew   | #linings | id:ceiling-2nd
+[ ] Plaster set & sand                       | 5bd   | @plasterer      | #linings | after:board-2nd,ceiling-2nd | id:plaster-done
+end: second-fix
+
+# Mechanical & Electrical Fit-Off
+
+parallel: fitoff-services | after:plaster-done
+[ ] HVAC commissioning & balancing           | 4bd   | @hvac-contractor | #hvac | id:hvac-commissioned | $SVC-305
+[ ] Electrical fit-off: lighting & GPOs     | 5bd   | @elec-contractor | #electrical | id:elec-fitoff | $SVC-306
+.  [ ] Install LED luminaires               | 2bd   | @elec-contractor | id:lights-in
+.  [ ] GPO face plates & data outlets       | 2bd   | @elec-contractor | after:lights-in
+.  [ ] Switchboard commissioning            | 1bd   | @elec-contractor | id:switchboard-comm | after:lights-in
+[ ] Fire alarm & detection install          | 3bd   | @fire-contractor | #fire | +external | id:fire-fitoff | $SVC-307
+[ ] Hydraulic fit-off: fixtures             | 3bd   | @hydraulics      | #hydraulics | id:hyd-fitoff | $SVC-308
+.  [ ] Bathroom fixtures install            | 1.5bd | @hydraulics
+.  [ ] Kitchen sink & tap                   | 0.5bd | @hydraulics
+.  [ ] Hot water commissioning              | 1bd   | @hydraulics
+[ ] Access control & CCTV                   | 3bd   | @security-contractor | #security | +external | id:security-fitoff | $SVC-309
+end: fitoff-services
+
+>> Services commissioning complete             | id:services-done | after:fitoff-services
+
+[ ] Independent commissioning report (ext)   | 2bd   | @commiss-engineer | #approvals | +external | after:services-done | id:comm-report | $CNCL-006
+// Third-party commissioning engineer required for BP sign-off.
+
+# Joinery & Fixtures
+
+parallel: joinery | after:plaster-done
+[ ] Kitchen joinery: fabricate & deliver     | 12bd  | @joinery-supplier | #joinery | +external | +fixed | >2026-06-02 | id:kitchen-joinery | $FIT-501
+// 12bd lead time in factory. Delivery booked for >2026-06-02.
+[ ] Reception desk fabricate & deliver       | 10bd  | @joinery-supplier | #joinery | +external | id:reception-joinery | $FIT-502 | after:kitchen-joinery
+[ ] Workstation benches install              | 4bd   | @joinery-installer | #joinery | id:bench-install | $FIT-503 | after:kitchen-joinery
+[ ] Kitchen joinery install                  | 2bd   | @joinery-installer | #joinery | id:kitchen-installed | $FIT-504 | after:kitchen-joinery
+[ ] Reception desk install                   | 2bd   | @joinery-installer | #joinery | id:reception-installed | $FIT-505 | after:reception-joinery
+end: joinery
+
+# Floor & Wall Finishes
+
+parallel: finishes | after:second-fix,joinery
+[ ] Paint — walls & ceilings (primed)        | 5bd   | @painter      | #finishes | id:paint-prime
+[ ] Paint — full colour coat                 | 4bd   | @painter      | #finishes | after:paint-prime | id:paint-done
+[ ] Vinyl plank flooring — open plan         | 6bd   | @flooring-crew | #finishes | id:vinyl-done | $FIT-601 | after:paint-prime
+.  [ ] Substrate preparation                 | 1bd   | @flooring-crew
+.  [ ] Adhesive and lay                      | 3bd   | @flooring-crew
+.  [ ] Trims and transitions                 | 1bd   | @flooring-crew
+.  [ ] Final cure time                       | 1bd   | @flooring-crew
+[ ] Carpet tiles — private offices           | 3bd   | @flooring-crew | #finishes | id:carpet-done | $FIT-602 | after:vinyl-done
+[ ] Splashback tile — kitchen                | 1bd   | @tiler         | #finishes | id:tile-done | $FIT-603 | after:kitchen-installed
+end: finishes
+
+# Furniture, AV & Loose Items
+
+parallel: ff-and-e | after:finishes,services-done
+[ ] Office furniture delivery & install      | 3bd   | @furniture-supplier | #ffe | +external | +fixed | >2026-07-07 | id:furniture-in | $FFE-701
+// Delivery window booked with building management for hoist access.
+[ ] AV system install & commissioning        | 3bd   | @av-contractor | #ffe | +external | id:av-done | $FFE-702 | after:elec-fitoff
+[ ] Signage & wayfinding install             | 1bd   | @signage-supplier | #ffe | +external | id:signage-done | $FFE-703
+[ ] Window furnishings — blinds install      | 1bd   | @blinds-supplier | #ffe | +external | +fixed | >2026-07-09 | id:blinds-done | $FFE-704
+end: ff-and-e
+
+>> Fit-out works complete                      | id:fitout-done | after:ff-and-e,comm-report
+
+# Defects, Handover & Occupation
+
+[ ] Contractor defects rectification         | 5bd   | @project-mgr  | #handover | after:fitout-done | id:defects-done
+[ ] Independent defects inspection           | 1bd   | @client-rep   | #handover | +external | after:defects-done | id:defects-inspected
+[ ] Obtain occupation certificate            | 5bd   | @certifier    | #approvals | +external | id:oc-issued | after:defects-inspected | $CNCL-004 | +deadline | <2026-07-25
+// OC must be received before client fit-out. Statutory processing time.
+[ ] Deep clean                               | 2bd   | @cleaner      | #handover | after:defects-done | id:clean-done | +fixed
+[ ] As-built drawings package               | 3bd   | @architect    | #handover | +external | after:fitout-done | id:asbuilts | $DOC-801
+[ ] O&M manuals compilation                 | 2bd   | @project-mgr  | #handover | after:asbuilts | id:manuals-done | $DOC-802
+[ ] Formal handover to client               | 1bd   | @project-mgr | @client-rep | #handover | after:oc-issued,clean-done,manuals-done | id:handover-done
+
+>> Practical Completion                        | id:pc | after:handover-done | +deadline | <2026-07-31
+
+# Post-Handover
+
+[>] 3-month defects liability period        | 1q   | @project-mgr | #handover | after:pc
+// Tracked informally; re-open in YATT when PC is achieved.
+[ ] Final account reconciliation            | 5bd  | @project-mgr | @quantity-surveyor | after:pc | $FIN-901
+[ ] Retention release (50%)                 | 1bd  | @project-mgr | after:pc | +external | $FIN-902
+[ ] Retention release (balance)             | 1bd  | @project-mgr | >2027-01-31 | +external | $FIN-903
+// Balance retention released at end of 6-month defects liability period.
+
+# Quarterly Milestones
+
+>> Q1 progress report                         | >2026-03-31 | id:q1-report
+>> Q2 progress report                         | >2026-06-30 | id:q2-report

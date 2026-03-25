@@ -1,0 +1,106 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "YATT",
+  "scopeName": "source.yatt",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#header" },
+    { "include": "#section" },
+    { "include": "#parallel-open" },
+    { "include": "#parallel-close" },
+    { "include": "#milestone" },
+    { "include": "#subtask" },
+    { "include": "#task" }
+  ],
+  "repository": {
+    "comment": {
+      "match": "^\\s*//.*$",
+      "name": "comment.line.double-slash.yatt"
+    },
+    "header": {
+      "match": "^(title|owner|start|schedule|timezone|week-start)\\s*(:)\\s*(.*)$",
+      "captures": {
+        "1": { "name": "keyword.other.header.yatt" },
+        "2": { "name": "punctuation.separator.yatt" },
+        "3": { "name": "string.unquoted.yatt" }
+      }
+    },
+    "section": {
+      "match": "^#{1,3}\\s+(.*)$",
+      "name": "entity.name.section.yatt",
+      "captures": {
+        "0": { "name": "markup.heading.yatt" }
+      }
+    },
+    "parallel-open": {
+      "match": "^\\s*(parallel:)\\s*(\\S+)?(.*)$",
+      "captures": {
+        "1": { "name": "keyword.control.parallel.yatt" },
+        "2": { "name": "entity.name.block.yatt" },
+        "3": { "include": "#fields" }
+      }
+    },
+    "parallel-close": {
+      "match": "^\\s*(end:)\\s*(\\S+)?\\s*$",
+      "captures": {
+        "1": { "name": "keyword.control.end.yatt" },
+        "2": { "name": "entity.name.block.yatt" }
+      }
+    },
+    "milestone": {
+      "match": "^\\s*(>>)\\s+([^|]+)(.*)?$",
+      "captures": {
+        "1": { "name": "keyword.operator.milestone.yatt" },
+        "2": { "name": "string.other.milestone-name.yatt" },
+        "3": { "include": "#fields" }
+      }
+    },
+    "subtask": {
+      "match": "^\\s*(\\.{1,3})\\s+(\\[[^\\]]+\\])\\s+([^|]+)(.*)?$",
+      "captures": {
+        "1": { "name": "punctuation.definition.subtask.yatt" },
+        "2": { "include": "#status" },
+        "3": { "name": "string.other.task-name.yatt" },
+        "4": { "include": "#fields" }
+      }
+    },
+    "task": {
+      "match": "^\\s*(\\[[^\\]]+\\])\\s+([^|]+)(.*)?$",
+      "captures": {
+        "1": { "include": "#status" },
+        "2": { "name": "string.other.task-name.yatt" },
+        "3": { "include": "#fields" }
+      }
+    },
+    "status": {
+      "patterns": [
+        { "match": "\\[x\\]|\\[done\\]", "name": "markup.inserted.status.done.yatt" },
+        { "match": "\\[~\\]|\\[active\\]", "name": "markup.changed.status.active.yatt" },
+        { "match": "\\[!\\]|\\[blocked\\]", "name": "markup.deleted.status.blocked.yatt" },
+        { "match": "\\[\\?\\]|\\[at-risk\\]", "name": "keyword.operator.status.atrisk.yatt" },
+        { "match": "\\[>\\]|\\[deferred\\]", "name": "markup.italic.status.deferred.yatt" },
+        { "match": "\\[_\\]|\\[-\\]|\\[cancelled\\]", "name": "comment.block.status.cancelled.yatt" },
+        { "match": "\\[=\\]|\\[review\\]", "name": "markup.italic.status.review.yatt" },
+        { "match": "\\[o\\]|\\[paused\\]", "name": "markup.bold.status.paused.yatt" },
+        { "match": "\\[ \\]|\\[new\\]", "name": "variable.other.status.new.yatt" }
+      ]
+    },
+    "fields": {
+      "patterns": [
+        { "match": "\\|", "name": "punctuation.separator.pipe.yatt" },
+        { "match": "@[\\w-]+", "name": "entity.name.tag.assignee.yatt" },
+        { "match": "#[\\w-]+", "name": "entity.other.attribute-name.tag.yatt" },
+        { "match": "!(high|critical|low|normal)", "name": "keyword.operator.priority.yatt" },
+        { "match": "%\\d+", "name": "constant.numeric.progress.yatt" },
+        { "match": "\\*\\w+", "name": "keyword.operator.recurrence.yatt" },
+        { "match": "id:[\\w-]+", "name": "variable.other.id.yatt" },
+        { "match": "after:[\\w,|-]+", "name": "keyword.control.after.yatt" },
+        { "match": "\\+[\\w-]+", "name": "storage.modifier.yatt" },
+        { "match": "\\$[\\w-]+", "name": "string.other.external-ref.yatt" },
+        { "match": ">\\d{4}-\\d{2}-\\d{2}", "name": "constant.other.date.start.yatt" },
+        { "match": "<\\d{4}-\\d{2}-\\d{2}", "name": "constant.other.date.due.yatt" },
+        { "match": "\\d+(\\.\\d+)?(h|bd|d|w|m|q)\\b", "name": "constant.numeric.duration.yatt" }
+      ]
+    }
+  }
+}
