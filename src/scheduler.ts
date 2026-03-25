@@ -211,7 +211,7 @@ function scheduleBlock(block: ParallelBlock, sequentialAnchor: Date, ctx: Schedu
       if (item.computedDate) innerAnchor = item.computedDate;
     } else if (item.type === 'parallel') {
       scheduleBlock(item, innerAnchor, ctx);
-      if (item.computedEnd) innerAnchor = item.computedEnd;
+      // Nested parallel blocks don't advance the inner anchor either.
     }
   }
 
@@ -259,11 +259,9 @@ export function schedule(doc: YattDocument): YattDocument {
       if (item.computedDate) sequentialAnchor = item.computedDate;
     } else if (item.type === 'parallel') {
       scheduleBlock(item, sequentialAnchor, ctx);
-      // Parallel block does NOT advance sequential anchor for the main chain;
-      // items after the block are parallel to it by design
-      // BUT per spec: sequential default is not applied between tasks across different
-      // parallel blocks, so we do advance the anchor after the block ends
-      if (item.computedEnd) sequentialAnchor = item.computedEnd;
+      // Parallel blocks do NOT advance the sequential anchor.
+      // Multiple parallel blocks all start at the same anchor point.
+      // Use after: on a subsequent item to explicitly depend on a block finishing.
     }
     // sections/comments don't affect scheduling
   }
