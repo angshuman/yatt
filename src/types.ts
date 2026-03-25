@@ -48,6 +48,8 @@ export interface Task {
   subtasks: Task[];
   computedStart?: Date;
   computedEnd?: Date;
+  plannedStart?: Date;   // original undelayed start when +delayed:X is used
+  plannedEnd?: Date;     // original undelayed end when +delayed:X is used
   line: number;
 }
 

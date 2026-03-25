@@ -1,6 +1,13 @@
 import {
-  YattDocument, Task, Milestone, ParallelBlock, DocumentItem, Duration, Dependency,
+  YattDocument, Task, Milestone, ParallelBlock, DocumentItem, Duration, DurationUnit, Dependency,
 } from './types.js';
+
+// Parse a duration value from a modifier string like "delayed:1w" → { value:1, unit:'w' }
+function parseModifierDuration(modifier: string): Duration | null {
+  const match = modifier.match(/^[\w-]+:(\d+(?:\.\d+)?)(h|bd|d|w|m|q)$/);
+  if (!match) return null;
+  return { value: parseFloat(match[1]), unit: match[2] as DurationUnit };
+}
 
 // ── Date arithmetic ───────────────────────────────────────────────────────────
 
@@ -149,8 +156,25 @@ function scheduleTask(task: Task, sequentialAnchor: Date, ctx: ScheduleCtx): voi
     const bd = task.duration.unit === 'bd' || ctx.useBusinessDays;
     task.computedEnd = addDuration(start, task.duration, bd, ctx.weekStart);
   } else {
-    // No duration: point in time (same as start)
     task.computedEnd = new Date(start);
+  }
+
+  // +delayed:Xd — shift the actual start/end forward, store original as planned
+  const delayedMod = task.modifiers.find(m => m.startsWith('delayed:'));
+  if (delayedMod) {
+    const delayDur = parseModifierDuration(delayedMod);
+    if (delayDur) {
+      task.plannedStart = new Date(task.computedStart);
+      task.plannedEnd   = task.computedEnd ? new Date(task.computedEnd) : undefined;
+      const bd = delayDur.unit === 'bd' || ctx.useBusinessDays;
+      task.computedStart = addDuration(task.computedStart, delayDur, bd, ctx.weekStart);
+      if (task.duration) {
+        const durBd = task.duration.unit === 'bd' || ctx.useBusinessDays;
+        task.computedEnd = addDuration(task.computedStart, task.duration, durBd, ctx.weekStart);
+      } else {
+        task.computedEnd = new Date(task.computedStart);
+      }
+    }
   }
 
   // Schedule subtasks sequentially within the task

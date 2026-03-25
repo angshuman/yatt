@@ -17,13 +17,13 @@ start: 2026-01-05
 
 parallel: design | after:phase1
 [done]   UX wireframes         | 4d  | @carol  | %100
-[active] Visual design         | 3d  | @carol  | %60  | +delayed
+[active] Visual design         | 3d  | @carol  | %60  | +delayed:2d
 end: design
 
 parallel: engineering | after:phase1
-[done]   API scaffold          | 3d  | @bob             | id:api
-[active] Auth service          | 4d  | @bob    | %45   | after:api
-[?]      Core features         | 1w  | @alice  | +delayed | after:api
+[done]   API scaffold          | 3d  | @bob              | id:api
+[active] Auth service          | 4d  | @bob    | %45    | after:api
+[?]      Core features         | 1w  | @alice  | +delayed:1w | after:api
 end: engineering
 
 [new]    Integration & QA      | 5d  | @alice @bob      | after:design,engineering | id:qa
@@ -35,7 +35,8 @@ end: engineering
 - `[done]` `[active]` `[?]` `[!]` `[new]` — task statuses with distinct colours
 - `parallel: name` — two workstreams running concurrently from the same anchor
 - `after:phase1` / `after:design,engineering` — explicit AND dependencies
-- `+delayed` — orange ghost bar shows slip; accent stripe on bar
+- `+delayed:2d` / `+delayed:1w` — shifts actual bar forward; ghost bar shows original planned position
+- `after:design,engineering` — `design` and `engineering` are the parallel block names (their implicit IDs)
 - `>> milestone` — diamond markers; `+deadline` draws a full-height hairline
 - `%60` progress fill inside bars · `@assignee` initials on bars
 - Today line drawn automatically
