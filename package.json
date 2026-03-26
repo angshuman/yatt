@@ -19,6 +19,7 @@
     "build:all": "npm run build && npm run build:site && npm run build:cli",
     "dev": "tsc --watch",
     "dev:cli": "npm run build:cli -- --watch",
+    "serve": "node dist/cli/serve.js .",
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "prepublishOnly": "npm run build:all"
   },

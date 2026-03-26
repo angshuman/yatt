@@ -239,13 +239,18 @@ function watchFolder(rootDir: string, sse: SseManager): void {
 // ── Browser opener ────────────────────────────────────────────────────────────
 
 function openBrowser(url: string): void {
-  const cmds: Record<string, [string, string[]]> = {
-    win32:  ['cmd', ['/c', 'start', '', url]],
-    darwin: ['open', [url]],
-    linux:  ['xdg-open', [url]],
-  };
-  const [cmd, args] = cmds[process.platform] ?? cmds['linux'];
-  execFile(cmd, args, () => {});
+  // Each platform needs a different command; all errors are silently swallowed so
+  // a missing browser never crashes the server.
+  try {
+    if (process.platform === 'win32') {
+      // explorer is more reliable than `start` in VS Code / PowerShell terminals
+      execFile('explorer', [url], () => {});
+    } else if (process.platform === 'darwin') {
+      execFile('open', [url], () => {});
+    } else {
+      execFile('xdg-open', [url], () => {});
+    }
+  } catch { /* ignore */ }
 }
 
 // ── Path guard ────────────────────────────────────────────────────────────────
@@ -1020,7 +1025,8 @@ if (!fs.existsSync(folder)) {
   const addr = `http://localhost:${port}`;
 
   if (await checkServerRunning(port)) {
-    process.stdout.write(`YATT already running at ${addr}\n`);
+    process.stdout.write(`\nYATT already running.\n`);
+    process.stdout.write(`\n  Open: ${addr}\n\n`);
     openBrowser(addr);
     return;
   }
@@ -1030,9 +1036,10 @@ if (!fs.existsSync(folder)) {
   const server = createServer(folder, port, sse);
 
   server.listen(port, '127.0.0.1', () => {
-    process.stdout.write(`\nYATT Viewer  v0.1.0\n`);
-    process.stdout.write(`Serving : ${folder}\n`);
-    process.stdout.write(`URL     : ${addr}\n\n`);
+    process.stdout.write(`\nYATT Viewer\n`);
+    process.stdout.write(`  Folder : ${folder}\n`);
+    process.stdout.write(`\n  Open: ${addr}\n\n`);
+    process.stdout.write(`Press Ctrl+C to stop.\n\n`);
     openBrowser(addr);
   });
 
