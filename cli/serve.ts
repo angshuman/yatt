@@ -622,13 +622,13 @@ function buildDocument(blocks, container) {
   blocks.forEach(function(b) {
     if (b.kind === 'heading') {
       html += '<div class="block-h' + b.level + '">' + inlineMd(b.text) + '</div>';
+    } else if (b.kind === 'prose') {
+      html += '<div class="prose">' + simpleMarkdown(b.text) + '</div>';
     } else if (b.kind === 'yatt') {
       html += buildYattCtrlHtml(b, 'yatt-' + ctrlIdx++);
     }
-    // prose blocks are intentionally skipped in view mode
   });
-  if (!html) container.innerHTML = '<div class="loading">No charts in this file.</div>';
-  else container.innerHTML = html;
+  container.innerHTML = html;
 }
 
 // ── Markdown/edit view ────────────────────────────────────────────────────────
