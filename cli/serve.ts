@@ -53,6 +53,7 @@ function parseMdBlocks(source: string): MdBlock[] {
   const blocks: MdBlock[] = [];
   const lines = source.split(/\r?\n/);
   let state: 'normal' | 'yatt' | 'fence' = 'normal';
+  let fenceClose = '```';   // tracks whether we opened with ``` or ~~~
   let buf: string[] = [];
 
   function flushProse() {
@@ -63,7 +64,7 @@ function parseMdBlocks(source: string): MdBlock[] {
 
   for (const line of lines) {
     if (state === 'yatt') {
-      if (line.trimEnd() === '```') {
+      if (line.trimEnd() === fenceClose) {
         blocks.push({ kind: 'yatt', source: buf.join('\n') });
         buf = [];
         state = 'normal';
@@ -74,18 +75,23 @@ function parseMdBlocks(source: string): MdBlock[] {
     }
     if (state === 'fence') {
       buf.push(line);
-      if (line.trimEnd() === '```') state = 'normal';
+      if (line.trimEnd() === fenceClose) state = 'normal';
       continue;
     }
+    // Opening ```yatt or ~~~yatt fence
     if (/^```yatt\s*$/.test(line)) {
-      flushProse();
-      state = 'yatt';
-      continue;
+      flushProse(); fenceClose = '```'; state = 'yatt'; continue;
     }
+    if (/^~~~yatt\s*$/.test(line)) {
+      flushProse(); fenceClose = '~~~'; state = 'yatt'; continue;
+    }
+    // Opening ``` fence (non-yatt)
     if (/^```/.test(line)) {
-      buf.push(line);
-      state = 'fence';
-      continue;
+      buf.push(line); fenceClose = '```'; state = 'fence'; continue;
+    }
+    // Opening ~~~ fence (tilde-style — non-yatt)
+    if (/^~~~/.test(line)) {
+      buf.push(line); fenceClose = '~~~'; state = 'fence'; continue;
     }
     const hm = line.match(/^(#{1,6})\s+(.+)$/);
     if (hm) {
@@ -396,9 +402,19 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 /* ── edit view ── */
 #view-edit { display: flex; flex-direction: column; overflow: hidden; }
 #view-edit.view-panel { overflow: hidden; }
-#editor { flex: 1; width: 100%; resize: none; background: var(--bg); color: var(--text);
-  border: none; outline: none; padding: 24px 32px; font-family: ui-monospace, 'Cascadia Code',
-  'Fira Code', monospace; font-size: 13px; line-height: 1.65; tab-size: 2; }
+#editor { display: block; flex: 1 1 0; min-height: 0; width: 100%; resize: none;
+  background: var(--bg); color: var(--text); border: none; outline: none; padding: 24px 32px;
+  font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 13px; line-height: 1.65; tab-size: 2; }
+
+/* ── prose tables ── */
+.prose table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
+.prose th { text-align: left; padding: 6px 12px; background: var(--panel2);
+  border: 1px solid var(--border); font-weight: 600; color: var(--text); }
+.prose td { padding: 6px 12px; border: 1px solid var(--border); color: var(--text); }
+.prose tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+.prose code { font-family: ui-monospace, monospace; font-size: 12px;
+  background: var(--panel2); padding: 1px 5px; border-radius: 3px; color: var(--accent-hi); }
 
 /* ── shared atoms ── */
 .sdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
@@ -444,27 +460,55 @@ function avatarEl(name, large) {
   return '<span class="' + cls + '" title="@' + esc(name) + '">' + esc(initials) + '</span>';
 }
 function inlineMd(s) {
-  return esc(s)
+  // inline code first (before other replacements that might catch backtick content)
+  var coded = esc(s).replace(/\`([^\`]+)\`/g,'<code>$1</code>');
+  return coded
     .replace(/\\*\\*(.+?)\\*\\*/g,'<strong>$1</strong>')
     .replace(/__(.+?)__/g,'<strong>$1</strong>')
     .replace(/\\*(.+?)\\*/g,'<em>$1</em>')
     .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g,'<a href="$2" target="_blank">$1</a>');
 }
+function isTableRow(s) { return s.trim().startsWith('|') && s.trim().endsWith('|'); }
+function isSeparatorRow(s) { return /^\\|[-| :]+\\|$/.test(s.trim()); }
+function renderTableRow(s, tag) {
+  var cells = s.trim().slice(1,-1).split('|');
+  return '<tr>' + cells.map(function(c) {
+    return '<'+tag+'>'+inlineMd(c.trim())+'</'+tag+'>';
+  }).join('') + '</tr>';
+}
 function simpleMarkdown(md) {
-  var lines = md.split('\\n'), out = [], inList = false;
+  var lines = md.split('\\n'), out = [], inList = false, inTable = false, tableHead = false;
   for (var i = 0; i < lines.length; i++) {
     var raw = lines[i];
+    // Table detection
+    if (isTableRow(raw)) {
+      if (!inTable) {
+        if (inList) { out.push('</ul>'); inList = false; }
+        inTable = true; tableHead = true;
+        out.push('<table>');
+      }
+      if (isSeparatorRow(raw)) { tableHead = false; out.push('<tbody>'); continue; }
+      if (tableHead) out.push('<thead>' + renderTableRow(raw,'th') + '</thead>');
+      else out.push(renderTableRow(raw,'td'));
+      continue;
+    }
+    if (inTable) { out.push('</tbody></table>'); inTable = false; }
     if (raw.trim() === '') { if (inList) { out.push('</ul>'); inList = false; } continue; }
     var hm = raw.match(/^(#{1,6})\\s+(.+)$/);
     if (hm) { if (inList) { out.push('</ul>'); inList = false; }
       out.push('<h'+hm[1].length+'>'+inlineMd(hm[2])+'</h'+hm[1].length+'>'); continue; }
+    var bq = raw.match(/^>\\s*(.*)/);
+    if (bq) { if (inList) { out.push('</ul>'); inList = false; }
+      out.push('<blockquote>'+inlineMd(bq[1])+'</blockquote>'); continue; }
     var li = raw.match(/^[-*+]\\s+(.+)$/);
     if (li) { if (!inList) { out.push('<ul>'); inList = true; }
       out.push('<li>'+inlineMd(li[1])+'</li>'); continue; }
     if (inList) { out.push('</ul>'); inList = false; }
+    if (raw.trim() === '---' || raw.trim() === '***') { out.push('<hr>'); continue; }
     out.push('<p>'+inlineMd(raw)+'</p>');
   }
   if (inList) out.push('</ul>');
+  if (inTable) out.push('</tbody></table>');
   return out.join('\\n');
 }
 
