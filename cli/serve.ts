@@ -929,23 +929,27 @@ function createServer(rootDir: string, port: number, sse: SseManager): http.Serv
   });
 }
 
-// ── Already-running check ─────────────────────────────────────────────────────
+// ── Port helpers ──────────────────────────────────────────────────────────────
 
-function checkServerRunning(port: number): Promise<boolean> {
+function isPortFree(port: number): Promise<boolean> {
   return new Promise(resolve => {
-    const req = http.request(
-      { host: '127.0.0.1', port, path: '/', method: 'HEAD' },
-      (res) => { resolve(res.statusCode === 200); res.destroy(); },
-    );
-    req.setTimeout(500, () => { req.destroy(); resolve(false); });
-    req.on('error', () => resolve(false));
-    req.end();
+    const srv = http.createServer();
+    srv.once('error', () => resolve(false));
+    srv.once('listening', () => { srv.close(); resolve(true); });
+    srv.listen(port, '127.0.0.1');
   });
+}
+
+async function findFreePort(start: number): Promise<number> {
+  for (let p = start; p < start + 20; p++) {
+    if (await isPortFree(p)) return p;
+  }
+  return start; // fallback — will fail loudly at listen
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-const { folder, port } = parseArgs(process.argv.slice(2));
+const { folder, port: preferredPort } = parseArgs(process.argv.slice(2));
 
 if (!fs.existsSync(folder)) {
   process.stderr.write(`Error: folder not found: ${folder}\n`);
@@ -953,13 +957,11 @@ if (!fs.existsSync(folder)) {
 }
 
 (async () => {
+  const port = await findFreePort(preferredPort);
   const addr = `http://localhost:${port}`;
 
-  if (await checkServerRunning(port)) {
-    process.stdout.write(`\nYATT already running.\n`);
-    process.stdout.write(`\n  Open: ${addr}\n\n`);
-    openBrowser(addr);
-    return;
+  if (port !== preferredPort) {
+    process.stdout.write(`Port ${preferredPort} in use, using ${port} instead.\n`);
   }
 
   const sse = new SseManager();
@@ -975,11 +977,7 @@ if (!fs.existsSync(folder)) {
   });
 
   server.on('error', (err: any) => {
-    if (err.code === 'EADDRINUSE') {
-      process.stderr.write(`Error: port ${port} already in use. Try --port <number>\n`);
-    } else {
-      process.stderr.write(`Server error: ${err.message}\n`);
-    }
+    process.stderr.write(`Server error: ${err.message}\n`);
     process.exit(1);
   });
 })();
