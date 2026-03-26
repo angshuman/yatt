@@ -6,14 +6,14 @@ Plain-text Gantt charts that live inside Markdown. Sequential tasks by default, 
 
 ---
 
-![YATT example Gantt chart](./docs/example-gantt.svg)
+![YATT example Gantt chart](./examples/showcase.svg)
 
 ~~~yatt
 title: Product v2 Launch
 start: 2026-01-05
 
 [done]   Discovery & planning  | 5d  | @alice          | id:phase1
->> Kickoff complete             | after:phase1
+>> Kickoff complete      | after:phase1
 
 parallel: design | after:phase1
 [done]   UX wireframes         | 4d  | @carol  | %100

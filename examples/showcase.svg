@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="616" viewBox="0 0 1100 616" font-family="ui-sans-serif, system-ui, sans-serif">
+<defs>
+
+  <pattern id="blocked-stripe" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+    <rect width="4" height="8" fill="#dc2626" opacity="0.5"/>
+  </pattern>
+<clipPath id="chart-clip">
+    <rect x="216" y="0" width="868" height="616"/>
+  </clipPath>
+</defs>
+<rect x="0" y="0" width="1100" height="616" fill="#1e293b"/>
+<rect x="0" y="0" width="216" height="616" fill="#0f172a"/>
+<text x="16" y="36" fill="#e2e8f0" font-size="16" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">Product Launch — v2.0</text>
+<line x1="216" y1="60" x2="1084" y2="60" stroke="#334155" stroke-width="1"/>
+<line x1="286.30529595015577" y1="60" x2="286.30529595015577" y2="616" stroke="#334155" stroke-width="1" opacity="0.5"/>
+<line x1="286.30529595015577" y1="54" x2="286.30529595015577" y2="60" stroke="#94a3b8" stroke-width="1"/>
+<text x="289.30529595015577" y="52" fill="#94a3b8" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">Apr 6</text>
+<line x1="362.01869158878503" y1="60" x2="362.01869158878503" y2="616" stroke="#334155" stroke-width="1" opacity="0.5"/>
+<line x1="362.01869158878503" y1="54" x2="362.01869158878503" y2="60" stroke="#94a3b8" stroke-width="1"/>
+<text x="365.01869158878503" y="52" fill="#94a3b8" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">Apr 13</text>
+<line x1="437.7320872274143" y1="60" x2="437.7320872274143" y2="616" stroke="#334155" stroke-width="1" opacity="0.5"/>
+<line x1="437.7320872274143" y1="54" x2="437.7320872274143" y2="60" stroke="#94a3b8" stroke-width="1"/>
+<text x="440.7320872274143" y="52" fill="#94a3b8" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">Apr 20</text>
+<line x1="513.4454828660437" y1="60" x2="513.4454828660437" y2="616" stroke="#334155" stroke-width="1" opacity="0.5"/>
+<line x1="513.4454828660437" y1="54" x2="513.4454828660437" y2="60" stroke="#94a3b8" stroke-width="1"/>
+<text x="516.4454828660437" y="52" fill="#94a3b8" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">Apr 27</text>
+<line x1="589.1588785046729" y1="60" x2="589.1588785046729" y2="616" stroke="#334155" stroke-width="1" opacity="0.5"/>
+<line x1="589.1588785046729" y1="54" x2="589.1588785046729" y2="60" stroke="#94a3b8" stroke-width="1"/>
+<text x="592.1588785046729" y="52" fill="#94a3b8" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">May 4</text>
+<line x1="664.8722741433021" y1="60" x2="664.8722741433021" y2="616" stroke="#334155" stroke-width="1" opacity="0.5"/>
+<line x1="664.8722741433021" y1="54" x2="664.8722741433021" y2="60" stroke="#94a3b8" stroke-width="1"/>
+<text x="667.8722741433021" y="52" fill="#94a3b8" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">May 11</text>
+<line x1="740.5856697819314" y1="60" x2="740.5856697819314" y2="616" stroke="#334155" stroke-width="1" opacity="0.5"/>
+<line x1="740.5856697819314" y1="54" x2="740.5856697819314" y2="60" stroke="#94a3b8" stroke-width="1"/>
+<text x="743.5856697819314" y="52" fill="#94a3b8" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">May 18</text>
+<line x1="816.2990654205607" y1="60" x2="816.2990654205607" y2="616" stroke="#334155" stroke-width="1" opacity="0.5"/>
+<line x1="816.2990654205607" y1="54" x2="816.2990654205607" y2="60" stroke="#94a3b8" stroke-width="1"/>
+<text x="819.2990654205607" y="52" fill="#94a3b8" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">May 25</text>
+<line x1="892.0124610591901" y1="60" x2="892.0124610591901" y2="616" stroke="#334155" stroke-width="1" opacity="0.5"/>
+<line x1="892.0124610591901" y1="54" x2="892.0124610591901" y2="60" stroke="#94a3b8" stroke-width="1"/>
+<text x="895.0124610591901" y="52" fill="#94a3b8" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">Jun 1</text>
+<line x1="967.7258566978193" y1="60" x2="967.7258566978193" y2="616" stroke="#334155" stroke-width="1" opacity="0.5"/>
+<line x1="967.7258566978193" y1="54" x2="967.7258566978193" y2="60" stroke="#94a3b8" stroke-width="1"/>
+<text x="970.7258566978193" y="52" fill="#94a3b8" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">Jun 8</text>
+<line x1="1043.4392523364486" y1="60" x2="1043.4392523364486" y2="616" stroke="#334155" stroke-width="1" opacity="0.5"/>
+<line x1="1043.4392523364486" y1="54" x2="1043.4392523364486" y2="60" stroke="#94a3b8" stroke-width="1"/>
+<text x="1046.4392523364486" y="52" fill="#94a3b8" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">Jun 15</text>
+<rect x="459.36448598130835" y="312" width="313.6697819314642" height="180" fill="rgba(99,102,241,0.08)" rx="4" clip-path="url(#chart-clip)"/>
+<line x1="457.36448598130835" y1="316" x2="457.36448598130835" y2="488" stroke="#6366f1" stroke-width="2" opacity="0.7"/>
+<circle cx="22" cy="78" r="4" fill="#22c55e"/>
+<text x="32" y="82" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Market research</text>
+<rect x="232.22429906542055" y="66.3" width="75.71339563862927" height="23.400000000000002" fill="#15803d" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<circle cx="296.9376947040498" cy="78" r="9" fill="#334155" stroke="#15803d" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="296.9376947040498" y="81.5" fill="#e2e8f0" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">R</text>
+<text x="238.22429906542055" y="82" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Market research</text>
+<rect x="0" y="96" width="1100" height="36" fill="rgba(255,255,255,0.02)"/>
+<circle cx="22" cy="114" r="4" fill="#22c55e"/>
+<text x="32" y="118" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Competitor analysis</text>
+<rect x="307.9376947040498" y="102.3" width="54.080996884735214" height="23.400000000000002" fill="#15803d" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<circle cx="351.01869158878503" cy="114" r="9" fill="#334155" stroke="#15803d" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="351.01869158878503" y="117.5" fill="#e2e8f0" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">R</text>
+<text x="32" y="154" fill="#e2e8f0" font-size="12" font-style="italic" font-family="ui-sans-serif, system-ui, sans-serif">Discovery Complete</text>
+<polygon points="307.9376947040498,141 316.9376947040498,150 307.9376947040498,159 298.9376947040498,150" fill="#fbbf24"/>
+<text x="320.9376947040498" y="154" fill="#fbbf24" font-size="10" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">Discovery Complete</text>
+<rect x="0" y="168" width="1100" height="36" fill="rgba(255,255,255,0.02)"/>
+<circle cx="22" cy="186" r="4" fill="#3b82f6"/>
+<text x="32" y="190" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Brand identity</text>
+<rect x="307.9376947040498" y="174.3" width="86.52959501557632" height="23.400000000000002" fill="#1d4ed8" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<rect x="307.9376947040498" y="174.3" width="51.91775700934579" height="23.400000000000002" fill="rgba(0,0,0,0.3)" rx="3" clip-path="url(#chart-clip)"/>
+<circle cx="383.46728971962614" cy="186" r="9" fill="#334155" stroke="#1d4ed8" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="383.46728971962614" y="189.5" fill="#e2e8f0" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">D</text>
+<text x="313.9376947040498" y="190" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Brand identity</text>
+<circle cx="22" cy="222" r="4" fill="#3b82f6"/>
+<text x="32" y="226" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">UI wireframes</text>
+<rect x="307.9376947040498" y="210.3" width="75.71339563862932" height="23.400000000000002" fill="#1d4ed8" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<rect x="307.9376947040498" y="210.3" width="30.28535825545173" height="23.400000000000002" fill="rgba(0,0,0,0.3)" rx="3" clip-path="url(#chart-clip)"/>
+<circle cx="372.65109034267914" cy="222" r="9" fill="#334155" stroke="#1d4ed8" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="372.65109034267914" y="225.5" fill="#e2e8f0" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">U</text>
+<text x="313.9376947040498" y="226" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">UI wireframes</text>
+<rect x="0" y="240" width="1100" height="36" fill="rgba(255,255,255,0.02)"/>
+<circle cx="22" cy="258" r="4" fill="#94a3b8"/>
+<text x="32" y="262" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Design system</text>
+<rect x="394.46728971962614" y="246.3" width="64.89719626168221" height="23.400000000000002" fill="#22c55e" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<circle cx="448.36448598130835" cy="258" r="9" fill="#334155" stroke="#22c55e" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="448.36448598130835" y="261.5" fill="#e2e8f0" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">D</text>
+<text x="400.46728971962614" y="262" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Design system</text>
+<text x="32" y="298" fill="#e2e8f0" font-size="12" font-style="italic" font-family="ui-sans-serif, system-ui, sans-serif">Design Complete</text>
+<polygon points="459.36448598130835,285 468.36448598130835,294 459.36448598130835,303 450.36448598130835,294" fill="#fbbf24"/>
+<text x="472.36448598130835" y="298" fill="#fbbf24" font-size="10" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">Design Complete</text>
+<rect x="0" y="312" width="1100" height="36" fill="rgba(255,255,255,0.02)"/>
+<rect x="16" y="314" width="168" height="32" fill="#1e3a5f" rx="3"/>
+<text x="24" y="334" fill="#93c5fd" font-size="12" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">Build</text>
+<circle cx="22" cy="366" r="4" fill="#94a3b8"/>
+<text x="32" y="370" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Backend API</text>
+<rect x="459.36448598130835" y="354.3" width="129.79439252336454" height="23.400000000000002" fill="#22c55e" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<circle cx="578.1588785046729" cy="366" r="9" fill="#334155" stroke="#22c55e" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="578.1588785046729" y="369.5" fill="#e2e8f0" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">A</text>
+<text x="465.36448598130835" y="370" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Backend API</text>
+<rect x="0" y="384" width="1100" height="36" fill="rgba(255,255,255,0.02)"/>
+<circle cx="22" cy="402" r="4" fill="#94a3b8"/>
+<text x="32" y="406" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Frontend</text>
+<rect x="589.1588785046729" y="390.3" width="97.34579439252332" height="23.400000000000002" fill="#22c55e" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<circle cx="675.5046728971962" cy="402" r="9" fill="#334155" stroke="#22c55e" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="675.5046728971962" y="405.5" fill="#e2e8f0" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">C</text>
+<text x="595.1588785046729" y="406" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Frontend</text>
+<circle cx="22" cy="438" r="4" fill="#94a3b8"/>
+<text x="32" y="442" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Mobile app</text>
+<rect x="686.5046728971962" y="426.3" width="86.52959501557632" height="23.400000000000002" fill="#22c55e" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<circle cx="762.0342679127725" cy="438" r="9" fill="#334155" stroke="#22c55e" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="762.0342679127725" y="441.5" fill="#e2e8f0" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">E</text>
+<text x="692.5046728971962" y="442" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Mobile app</text>
+<rect x="0" y="456" width="1100" height="36" fill="rgba(255,255,255,0.02)"/>
+<text x="32" y="478" fill="#e2e8f0" font-size="12" font-style="italic" font-family="ui-sans-serif, system-ui, sans-serif">Code Complete</text>
+<polygon points="773.0342679127725,465 782.0342679127725,474 773.0342679127725,483 764.0342679127725,474" fill="#fbbf24"/>
+<text x="786.0342679127725" y="478" fill="#fbbf24" font-size="10" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">Code Complete</text>
+<circle cx="22" cy="510" r="4" fill="#94a3b8"/>
+<text x="32" y="514" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Beta &amp; hardening</text>
+<rect x="773.0342679127725" y="498.3" width="75.71339563862932" height="23.400000000000002" fill="#22c55e" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<circle cx="837.7476635514018" cy="510" r="9" fill="#334155" stroke="#22c55e" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="837.7476635514018" y="513.5" fill="#e2e8f0" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">Q</text>
+<text x="779.0342679127725" y="514" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Beta &amp; hardening</text>
+<rect x="0" y="528" width="1100" height="36" fill="rgba(255,255,255,0.02)"/>
+<circle cx="22" cy="546" r="4" fill="#94a3b8"/>
+<text x="32" y="550" fill="#e2e8f0" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Marketing campaign</text>
+<rect x="967.7258566978193" y="534.3" width="75.71339563862932" height="23.400000000000002" fill="#22c55e" rx="3" opacity="0.85" clip-path="url(#chart-clip)"/>
+<circle cx="1032.4392523364486" cy="546" r="9" fill="#334155" stroke="#22c55e" stroke-width="1.5" clip-path="url(#chart-clip)"/>
+<text x="1032.4392523364486" y="549.5" fill="#e2e8f0" font-size="8" font-weight="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">M</text>
+<text x="973.7258566978193" y="550" fill="#fff" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.9" clip-path="url(#chart-clip)">Marketing campaign</text>
+<text x="32" y="586" fill="#e2e8f0" font-size="12" font-style="italic" font-family="ui-sans-serif, system-ui, sans-serif">Public Launch</text>
+<polygon points="1043.4392523364486,573 1052.4392523364486,582 1043.4392523364486,591 1034.4392523364486,582" fill="#fbbf24"/>
+<text x="1056.4392523364486" y="586" fill="#fbbf24" font-size="10" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif" clip-path="url(#chart-clip)">Public Launch</text>
+<line x1="216" y1="0" x2="216" y2="616" stroke="#334155" stroke-width="1"/>
+</svg>
