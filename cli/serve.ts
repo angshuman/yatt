@@ -366,13 +366,18 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .ptask-priority[data-p="high"] { color: var(--orange); }
 .ptask-prog { font-size: 10px; color: var(--muted); font-family: ui-monospace, monospace; }
 
-/* ── edit view ── */
-#view-edit { display: flex; flex-direction: column; overflow: hidden; }
-#view-edit.view-panel { overflow: hidden; }
+/* ── markdown/edit view ── */
+#view-markdown { display: flex; flex-direction: column; overflow: hidden; }
+#view-markdown.view-panel { overflow: hidden; }
 #editor { display: block; flex: 1 1 0; min-height: 0; width: 100%; resize: none;
   background: var(--bg); color: var(--text); border: none; outline: none;
   padding: 24px 32px; font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
   font-size: 13px; line-height: 1.65; tab-size: 2; }
+
+/* ── yatt source panel ── */
+.yatt-src { padding: 16px; font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 12px; line-height: 1.6; overflow-x: auto;
+  background: var(--bg); color: var(--text); white-space: pre; margin: 0; }
 
 /* ── shared atoms ── */
 .sdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
@@ -581,14 +586,17 @@ function buildYattCtrlHtml(block, ctrlId) {
     buildKanbanHtml(block.tasks || [], true) + '</div></div>';
   var pe = '<div class="yatt-ctrl-panel" data-panel="people"><div class="ctrl-people">' +
     buildPeopleHtml(block.tasks || []) + '</div></div>';
+  var md = '<div class="yatt-ctrl-panel" data-panel="markdown"><pre class="yatt-src"><code>' +
+    esc(block.source || '') + '</code></pre></div>';
   var tabs =
     '<button class="yatt-ctrl-tab active" data-panel="timeline" onclick="yattCtrlSetView(\\'' + ctrlId + '\\',\\'timeline\\')">Timeline</button>' +
     '<button class="yatt-ctrl-tab" data-panel="kanban" onclick="yattCtrlSetView(\\'' + ctrlId + '\\',\\'kanban\\')">Kanban</button>' +
-    '<button class="yatt-ctrl-tab" data-panel="people" onclick="yattCtrlSetView(\\'' + ctrlId + '\\',\\'people\\')">People</button>';
+    '<button class="yatt-ctrl-tab" data-panel="people" onclick="yattCtrlSetView(\\'' + ctrlId + '\\',\\'people\\')">People</button>' +
+    '<button class="yatt-ctrl-tab" data-panel="markdown" onclick="yattCtrlSetView(\\'' + ctrlId + '\\',\\'markdown\\')">Markdown</button>';
   return '<div class="yatt-ctrl" id="' + ctrlId + '">' +
     errHtml +
     '<div class="yatt-ctrl-bar">' + tabs + '</div>' +
-    '<div class="yatt-ctrl-body">' + tl + kb + pe + '</div>' +
+    '<div class="yatt-ctrl-body">' + tl + kb + pe + md + '</div>' +
     '</div>';
 }
 
@@ -613,18 +621,18 @@ function buildDocument(blocks, container) {
   blocks.forEach(function(b) {
     if (b.kind === 'heading') {
       html += '<div class="block-h' + b.level + '">' + inlineMd(b.text) + '</div>';
-    } else if (b.kind === 'prose') {
-      html += '<div class="prose">' + simpleMarkdown(b.text) + '</div>';
     } else if (b.kind === 'yatt') {
       html += buildYattCtrlHtml(b, 'yatt-' + ctrlIdx++);
     }
+    // prose blocks are intentionally skipped in view mode
   });
-  container.innerHTML = html;
+  if (!html) container.innerHTML = '<div class="loading">No charts in this file.</div>';
+  else container.innerHTML = html;
 }
 
-// ── Edit view ─────────────────────────────────────────────────────────────────
+// ── Markdown/edit view ────────────────────────────────────────────────────────
 
-function renderEditView() {
+function renderMarkdownView() {
   var ta = document.getElementById('editor');
   if (!ta) return;
   if (state.source !== null) { ta.value = state.source; return; }
@@ -662,7 +670,7 @@ function setSaveStatus(cls, text) {
 // ── Page-level view switching ─────────────────────────────────────────────────
 
 function setView(v) {
-  if (state.saveTimer && v !== 'edit') {
+  if (state.saveTimer && v !== 'markdown') {
     clearTimeout(state.saveTimer); state.saveTimer = null; doSave();
   }
   state.view = v;
@@ -672,7 +680,7 @@ function setView(v) {
   document.querySelectorAll('.tab').forEach(function(btn) {
     btn.classList.toggle('active', btn.getAttribute('data-view') === v);
   });
-  ['view','edit'].forEach(function(n) {
+  ['view','markdown'].forEach(function(n) {
     var el = document.getElementById('view-' + n);
     if (el) el.hidden = (n !== v);
   });
@@ -682,7 +690,7 @@ function setView(v) {
 function renderCurrentView() {
   if (!state.currentFile) return;
   if (state.view === 'view') renderViewPanel();
-  else if (state.view === 'edit') renderEditView();
+  else if (state.view === 'markdown') renderMarkdownView();
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -748,7 +756,7 @@ function connectSse() {
       clearTimeout(debounce);
       debounce = setTimeout(function() {
         loadFileList().then(function() {
-          if (state.view === 'edit') return;
+          if (state.view === 'markdown') return;
           if (state.currentFile) { state.blocks = null; renderCurrentView(); }
         });
       }, 250);
@@ -785,7 +793,7 @@ window.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tab').forEach(function(btn) {
     btn.classList.toggle('active', btn.getAttribute('data-view') === initialView);
   });
-  ['view','edit'].forEach(function(n) {
+  ['view','markdown'].forEach(function(n) {
     var el = document.getElementById('view-' + n);
     if (el) el.hidden = (n !== initialView);
   });
@@ -823,7 +831,7 @@ function buildShellHtml(rootDir: string): string {
     <span id="folder-path"></span>
     <div id="view-tabs">
       <button class="tab active" data-view="view">View</button>
-      <button class="tab" data-view="edit">Edit</button>
+      <button class="tab" data-view="markdown">Markdown</button>
     </div>
     <span id="save-status"></span>
     <span id="file-count" style="font-size:11px;color:var(--muted);flex-shrink:0"></span>
@@ -832,7 +840,7 @@ function buildShellHtml(rootDir: string): string {
     <nav id="sidebar"><div id="sidebar-inner"></div></nav>
     <main id="main">
       <div id="view-view" class="view-panel"><div id="doc-content"></div></div>
-      <div id="view-edit" class="view-panel" hidden><textarea id="editor" spellcheck="false"></textarea></div>
+      <div id="view-markdown" class="view-panel" hidden><textarea id="editor" spellcheck="false"></textarea></div>
     </main>
   </div>
 </div>
