@@ -369,6 +369,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 /* ── markdown/edit view ── */
 #view-markdown { display: flex; flex-direction: column; overflow: hidden; }
 #view-markdown.view-panel { overflow: hidden; }
+.view-panel[hidden] { display: none !important; }
 #editor { display: block; flex: 1 1 0; min-height: 0; width: 100%; resize: none;
   background: var(--bg); color: var(--text); border: none; outline: none;
   padding: 24px 32px; font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
