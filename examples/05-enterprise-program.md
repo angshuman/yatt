@@ -34,6 +34,8 @@ parallel: Core Ledger | after:kickoff-ms
   [ ] Ledger service — events | 4bd | @bob | #ledger-events | after:ledger-core
   [ ] Contract tests | 3bd | @qa-a | #ledger-tests | after:ledger-events
   [o] Regulatory reporting adapter | 5bd | @alice | !high | #reg-adapter | +delayed:2w | after:ledger-tests
+  // Paused pending clarification from compliance on DORA reporting fields.
+  // Expected to resume once compliance review is complete in Stream A.
   >> Ledger Service Ready | #ledger-ready | after:ledger-tests
 end:
 
@@ -51,6 +53,8 @@ parallel: Payments Engine | after:kickoff-ms
   .   Confirmation & returns | 2bd | @dave
   .   Daily settlement | 1bd | @dave
   [!] SWIFT MT → MX migration | 8bd | @carol | !critical | #swift-mx | after:sepa,fps | blocked
+  // Blocked: waiting on SWIFT certification approval (submitted 2026-03-14).
+  // Cannot start until sandbox credentials are issued — estimated 2 week delay.
   [ ] Payment gateway tests | 4bd | @qa-b | #pay-tests | after:swift-mx
   >> Payments Engine Ready | #payments-ready | after:pay-tests
 end:

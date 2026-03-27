@@ -13,6 +13,7 @@ schedule: business-days
 [x] Market research | 5bd | @research | #research
 [x] Competitor analysis | 3bd | @research | #comp-analysis | after:research
 [ ] User interviews | 4bd | @ux | #interviews | after:research
+// 12 interviews scheduled across three customer segments. Synthesis in Notion.
 >> Discovery Complete | #discovery-done | after:comp-analysis,interviews
 
 ## Phase 2 — Design
@@ -47,6 +48,7 @@ schedule: business-days
 ## Phase 4 — Launch
 
 [ ] Beta programme | 5bd | @qa | #beta | after:code-done
+// Targeting 50 design-partner customers. NDA required. Feedback tracked in Linear.
 [ ] Bug fixes & polish | 3bd | @eng | #bugfix | after:beta
 [ ] Marketing campaign | 5bd | @marketing | #campaign | +fixed | >2026-06-01
 [ ] Sales enablement | 3bd | @sales | #sales-en | after:design-done
