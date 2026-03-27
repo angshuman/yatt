@@ -461,6 +461,30 @@ export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): strin
           rx: '1',
           'clip-path': 'url(#chart-clip)',
         }));
+        // Dashed outline on the actual bar to mark it as shifted
+        parts.push(rect(barX, barY, barW, barH, {
+          fill: 'none',
+          stroke: ghostColor,
+          'stroke-width': '1.5',
+          'stroke-dasharray': '5,3',
+          rx: '3',
+          opacity: '0.8',
+          'clip-path': 'url(#chart-clip)',
+        }));
+        // Dotted connector from ghost end to actual start
+        if (task.plannedEnd) {
+          const connX1 = Math.min(dateToX(task.plannedEnd), barX - 1);
+          const connX2 = barX;
+          if (connX2 > connX1 + 2) {
+            parts.push(line(connX1, midY, connX2, midY, {
+              stroke: ghostColor,
+              'stroke-width': '1',
+              'stroke-dasharray': '2,3',
+              opacity: '0.5',
+              'clip-path': 'url(#chart-clip)',
+            }));
+          }
+        }
       }
 
       // Deadline hairline

@@ -12,18 +12,18 @@ Plain-text Gantt charts that live inside Markdown. Sequential tasks by default, 
 title: Product v2 Launch
 start: 2026-01-05
 
-[done]   Discovery & planning  | 5d  | @alice          | id:phase1
+[x] Discovery & planning | id:phase1 | 5d | @alice
 >> Kickoff complete      | after:phase1
 
 parallel: design | after:phase1
 [done]   UX wireframes         | 4d  | @carol  | %100
-[~] Visual design | 3d | @carol | %99 | delayed 2d
+[!] Visual design | 3d | @carol | %99 | delayed 2d
 end: design
 
 parallel: engineering | after:phase1
 [done]   API scaffold          | 3d  | @bob              | id:api
-[!] Auth service | 4d | @bob | %45 | after:api
-[?]      Core features         | 1w  | @alice  | delayed 1w | after:api
+[?] Auth service | 4d | @bob | %45 | after:api
+[x] Core features | 1w | @alice | after:api | delayed 1w
 end: engineering
 
 [!] Integration & QA | id:qa | 5d | @alice @bob | after:design,engineering

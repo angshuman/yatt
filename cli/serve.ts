@@ -407,6 +407,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .k-card:hover { border-color: var(--accent); }
 .k-card-name { font-size: 11px; color: var(--text); line-height: 1.4; margin-bottom: 3px; }
 .k-card-desc { font-size: 10px; color: var(--muted); line-height: 1.4; margin-bottom: 5px; font-style: italic; }
+.k-shift-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600;
+  border-radius: 3px; padding: 1px 5px; margin-right: 3px; }
+.k-shift-badge.delayed { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.k-shift-badge.blocked { background: rgba(239,68,68,0.15); color: #ef4444; }
 .k-card-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .k-progress { height: 2px; background: var(--border); border-radius: 1px; margin-top: 6px; overflow: hidden; }
 .k-progress-fill { height: 100%; border-radius: 1px; background: var(--accent); }
@@ -609,6 +613,11 @@ function openTaskEdit(task) {
   document.getElementById('te-id').value = task.id || '';
   document.getElementById('te-after').value = task.after || '';
   document.getElementById('te-description').value = task.description || '';
+  var mods = task.modifiers || [];
+  var delayedMod = mods.find(function(m){ return m.match(/^delayed:/); });
+  var blockedMod = mods.find(function(m){ return m.match(/^blocked:/); });
+  document.getElementById('te-delayed').value = delayedMod ? delayedMod.split(':')[1] : '';
+  document.getElementById('te-blocked').value = blockedMod ? blockedMod.split(':')[1] : '';
   document.getElementById('te-save-msg').textContent = '';
   document.getElementById('task-edit-overlay').classList.remove('hidden');
   setTimeout(function(){ document.getElementById('te-name').focus(); }, 50);
@@ -639,6 +648,15 @@ function saveTaskEdit() {
   updated.id = document.getElementById('te-id').value.trim() || null;
   updated.after = document.getElementById('te-after').value.trim() || null;
   updated.description = document.getElementById('te-description').value.trim() || null;
+  // Rebuild modifiers: keep non-shift ones, then append updated delayed/blocked
+  var baseMods = (updated.modifiers || []).filter(function(m){
+    return !m.match(/^(delayed|blocked):/);
+  });
+  var delayedVal = document.getElementById('te-delayed').value.trim();
+  var blockedVal = document.getElementById('te-blocked').value.trim();
+  if (delayedVal) baseMods.push('delayed:' + delayedVal);
+  if (blockedVal) baseMods.push('blocked:' + blockedVal);
+  updated.modifiers = baseMods;
 
   var bidx = state.editTask.bidx;
   var yblocks = (state.blocks || []).filter(function(b){ return b.kind === 'yatt'; });
@@ -777,6 +795,16 @@ function sdot(status) {
   var c = STATUS_COLOR[status] || '#7d8590';
   return '<span class="sdot" style="background:' + c + '" title="' + esc(status) + '"></span>';
 }
+function shiftBadges(task) {
+  var html = '';
+  var mods = task.modifiers || [];
+  mods.forEach(function(m) {
+    var dm = m.match(/^(delayed|blocked):(.+)$/);
+    if (dm) html += '<span class="k-shift-badge ' + dm[1] + '" title="' + dm[1] + ' ' + dm[2] + '">' +
+      (dm[1] === 'delayed' ? '⏱' : '🚫') + ' ' + dm[2] + '</span>';
+  });
+  return html;
+}
 function avatarEl(name, large) {
   var clean = name.replace(/[^a-zA-Z]/g,'');
   var init = (clean.slice(0,2) || name.slice(0,2)).toUpperCase();
@@ -893,6 +921,8 @@ function buildKanbanHtml(tasks, compact) {
         html += '<div class="k-card-desc">' + esc(t.description) + '</div>';
       }
       html += '<div class="k-card-meta">';
+      var sb = shiftBadges(t);
+      if (sb) html += sb;
       if (t.assignees && t.assignees.length) {
         t.assignees.slice(0,3).forEach(function(a) { html += avatarEl(a, false); });
       }
@@ -937,6 +967,8 @@ function buildPeopleHtml(tasks) {
       var lineAttr = t.line ? ' data-line="' + t.line + '"' : '';
       html += '<div class="ptask-row"' + lineAttr + '>' + sdot(t.status);
       html += '<span class="ptask-name">' + esc(t.name) + '</span>';
+      var sb = shiftBadges(t);
+      if (sb) html += sb;
       if (t.priority && t.priority !== 'normal')
         html += '<span class="ptask-priority" data-p="' + esc(t.priority) + '">' + esc(t.priority) + '</span>';
       if (t.progress != null) html += '<span class="ptask-prog">' + t.progress + '%</span>';
@@ -1285,6 +1317,10 @@ function buildShellHtml(rootDir: string): string {
       <div class="te-field"><label>Progress (%)</label><input type="number" id="te-progress" min="0" max="100" placeholder="0"></div>
       <div class="te-field"><label>ID</label><input type="text" id="te-id" placeholder="task-slug"></div>
       <div class="te-field"><label>After (deps)</label><input type="text" id="te-after" placeholder="id1,id2"></div>
+    </div>
+    <div class="te-row cols-2">
+      <div class="te-field"><label>Delayed by</label><input type="text" id="te-delayed" placeholder="e.g. 3d, 1w"></div>
+      <div class="te-field"><label>Blocked for</label><input type="text" id="te-blocked" placeholder="e.g. 2w, 5d"></div>
     </div>
     <div class="te-row">
       <div class="te-field"><label>Description</label><textarea id="te-description" placeholder="Optional description (saved as // comment lines below the task)"></textarea></div>
