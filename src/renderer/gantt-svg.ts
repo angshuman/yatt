@@ -31,15 +31,15 @@ const STATUS_COLORS: Record<Status, string> = {
 };
 
 const STATUS_DARK: Record<Status, string> = {
-  new:       '#22c55e',
-  active:    '#1d4ed8',
-  done:      '#15803d',
-  blocked:   '#b91c1c',
-  'at-risk': '#d97706',
-  deferred:  '#7c3aed',
+  new:       '#94a3b8',
+  active:    '#60a5fa',
+  done:      '#4ade80',
+  blocked:   '#f87171',
+  'at-risk': '#fbbf24',
+  deferred:  '#c4b5fd',
   cancelled: '#4b5563',
-  review:    '#6d28d9',
-  paused:    '#475569',
+  review:    '#a78bfa',
+  paused:    '#64748b',
 };
 
 function escapeXml(s: string): string {
@@ -198,6 +198,11 @@ function line(x1: number, y1: number, x2: number, y2: number, attrs: Record<stri
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${attrStr}/>`;
 }
 
+function circle(cx: number, cy: number, r: number, attrs: Record<string, string | number> = {}): string {
+  const attrStr = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" ${attrStr}/>`;
+}
+
 function diamond(cx: number, cy: number, size: number, fill: string): string {
   const s = size / 2;
   return `<polygon points="${cx},${cy - s} ${cx + s},${cy} ${cx},${cy + s} ${cx - s},${cy}" fill="${fill}"/>`;
@@ -212,23 +217,23 @@ function initials(name: string): string {
 export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): string {
   const opts: ResolvedOptions = {
     width:        options?.width        ?? 1200,
-    rowHeight:    options?.rowHeight    ?? 36,
-    headerHeight: options?.headerHeight ?? 60,
+    rowHeight:    options?.rowHeight    ?? 28,
+    headerHeight: options?.headerHeight ?? 40,
     padding:      options?.padding      ?? 16,
     fontFamily:   options?.fontFamily   ?? 'ui-sans-serif, system-ui, sans-serif',
     theme:        options?.theme        ?? 'light',
   };
 
-  const isDark = opts.theme === 'dark';
-  const bgColor       = isDark ? '#1e293b' : '#ffffff';
-  const textColor     = isDark ? '#e2e8f0' : '#1e293b';
-  const mutedColor    = isDark ? '#94a3b8' : '#64748b';
-  const gridColor     = isDark ? '#334155' : '#e2e8f0';
-  const labelWidth    = 200;
-  const chartLeft     = opts.padding + labelWidth;
-  const chartWidth    = opts.width - chartLeft - opts.padding;
+  const isDark      = opts.theme === 'dark';
+  const bgColor     = isDark ? '#0f172a' : '#ffffff';
+  const textColor   = isDark ? '#e2e8f0' : '#1e293b';
+  const mutedColor  = isDark ? '#64748b'  : '#94a3b8';
+  const trackColor  = isDark ? '#1e293b'  : '#f1f5f9';
+  const borderColor = isDark ? '#334155'  : '#e2e8f0';
+  const labelWidth  = 200;
+  const chartLeft   = opts.padding + labelWidth;
+  const chartWidth  = opts.width - chartLeft - opts.padding;
 
-  // Collect rows
   const rows: GanttRow[] = [];
   collectRows(doc.items as Array<DocumentItem>, 0, rows, false);
 
@@ -243,359 +248,301 @@ export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): strin
 
   const granularity = getGranularity(spanDays);
   const ticks = generateTicks(minDate, maxDate, granularity);
-
   const totalHeight = opts.headerHeight + rows.length * opts.rowHeight + opts.padding;
 
   const parts: string[] = [];
 
-  // ── Defs ──────────────────────────────────────────────────────────────────
-  parts.push(`<defs>`);
+  // ── Defs ────────────────────────────────────────────────────────────────────
+  parts.push(`<defs>
+  <clipPath id="chart-clip"><rect x="${chartLeft}" y="0" width="${chartWidth}" height="${totalHeight}"/></clipPath>
+</defs>`);
 
-  // Stripe pattern for blocked
-  parts.push(`
-  <pattern id="blocked-stripe" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
-    <rect width="4" height="8" fill="${isDark ? '#dc2626' : '#ef4444'}" opacity="0.5"/>
-  </pattern>`);
-
-  // Clip path for chart area
-  parts.push(`<clipPath id="chart-clip">
-    <rect x="${chartLeft}" y="0" width="${chartWidth}" height="${totalHeight}"/>
-  </clipPath>`);
-
-  parts.push(`</defs>`);
-
-  // ── Background ─────────────────────────────────────────────────────────────
+  // ── Background ──────────────────────────────────────────────────────────────
   parts.push(rect(0, 0, opts.width, totalHeight, { fill: bgColor }));
 
-  // ── Label column background ────────────────────────────────────────────────
-  parts.push(rect(0, 0, labelWidth + opts.padding, totalHeight, { fill: isDark ? '#0f172a' : '#f8fafc' }));
-
-  // ── Title ─────────────────────────────────────────────────────────────────
+  // ── Title ───────────────────────────────────────────────────────────────────
   if (doc.header.title) {
-    parts.push(text(opts.padding, opts.headerHeight / 2 + 6, doc.header.title, {
-      fill: textColor,
-      'font-size': '16',
-      'font-weight': '600',
-      'font-family': opts.fontFamily,
+    parts.push(text(opts.padding, opts.headerHeight / 2 + 5, doc.header.title, {
+      fill: textColor, 'font-size': '14', 'font-weight': '600', 'font-family': opts.fontFamily,
     }));
   }
 
-  // ── Time axis ticks ────────────────────────────────────────────────────────
-  const axisY = opts.headerHeight;
-  parts.push(line(chartLeft, axisY, chartLeft + chartWidth, axisY, { stroke: gridColor, 'stroke-width': '1' }));
+  // ── Time axis ───────────────────────────────────────────────────────────────
+  const axisY = opts.headerHeight - 1;
+  parts.push(line(chartLeft, axisY, chartLeft + chartWidth, axisY, {
+    stroke: borderColor, 'stroke-width': '1',
+  }));
 
   for (const tick of ticks) {
     const x = dateToX(tick);
     if (x < chartLeft || x > chartLeft + chartWidth) continue;
-    // Vertical grid line
-    parts.push(line(x, axisY, x, totalHeight, { stroke: gridColor, 'stroke-width': '1', opacity: '0.5' }));
-    // Tick mark
-    parts.push(line(x, axisY - 6, x, axisY, { stroke: mutedColor, 'stroke-width': '1' }));
-    // Label
-    parts.push(text(x + 3, axisY - 8, formatTick(tick, granularity), {
-      fill: mutedColor,
-      'font-size': '11',
-      'font-family': opts.fontFamily,
+    parts.push(line(x, opts.headerHeight, x, totalHeight, {
+      stroke: trackColor, 'stroke-width': '1', 'clip-path': 'url(#chart-clip)',
+    }));
+    parts.push(line(x, axisY - 4, x, axisY, { stroke: mutedColor, 'stroke-width': '1' }));
+    parts.push(text(x + 3, axisY - 6, formatTick(tick, granularity), {
+      fill: mutedColor, 'font-size': '10', 'font-family': opts.fontFamily,
     }));
   }
 
-  // ── Rows ───────────────────────────────────────────────────────────────────
-
-  // First pass: draw parallel block backgrounds
-  // Find blocks and their row ranges
-  interface BlockRange { block: ParallelBlock; rowStart: number; rowEnd: number }
-  const blockRanges: BlockRange[] = [];
+  // ── Parallel block left-border decoration ───────────────────────────────────
   {
+    interface BlockRange { block: ParallelBlock; rowStart: number; rowEnd: number }
+    const blockRanges: BlockRange[] = [];
     const blockStack: { block: ParallelBlock; rowStart: number }[] = [];
     for (let ri = 0; ri < rows.length; ri++) {
       const row = rows[ri];
-      if (row.kind === 'parallel-header' && row.block) {
-        blockStack.push({ block: row.block, rowStart: ri });
-      }
+      if (row.kind === 'parallel-header' && row.block) blockStack.push({ block: row.block, rowStart: ri });
       if (row.isLastInBlock && blockStack.length > 0) {
         const entry = blockStack.pop()!;
         blockRanges.push({ block: entry.block, rowStart: entry.rowStart, rowEnd: ri });
       }
     }
+    for (const br of blockRanges) {
+      const by = opts.headerHeight + br.rowStart * opts.rowHeight;
+      const bh = (br.rowEnd - br.rowStart + 1) * opts.rowHeight;
+      parts.push(line(opts.padding / 2, by + 4, opts.padding / 2, by + bh - 4, {
+        stroke: '#6366f1', 'stroke-width': '2', opacity: '0.35',
+      }));
+    }
   }
 
-  for (const br of blockRanges) {
-    if (!br.block.computedStart || !br.block.computedEnd) continue;
-    const bx = dateToX(br.block.computedStart);
-    const bw = dateToX(br.block.computedEnd) - bx;
-    const by = opts.headerHeight + br.rowStart * opts.rowHeight;
-    const bh = (br.rowEnd - br.rowStart + 1) * opts.rowHeight;
-    parts.push(rect(bx, by, bw, bh, {
-      fill: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)',
-      rx: '4',
-      'clip-path': 'url(#chart-clip)',
-    }));
-    // Left bracket line
-    parts.push(line(bx - 2, by + 4, bx - 2, by + bh - 4, {
-      stroke: '#6366f1',
-      'stroke-width': '2',
-      opacity: '0.7',
-    }));
-  }
-
-  // Second pass: draw rows
+  // ── Rows ────────────────────────────────────────────────────────────────────
   for (let ri = 0; ri < rows.length; ri++) {
     const row = rows[ri];
     const rowY = opts.headerHeight + ri * opts.rowHeight;
     const midY = rowY + opts.rowHeight / 2;
 
-    // Alternating row backgrounds
-    if (ri % 2 === 1) {
-      parts.push(rect(0, rowY, opts.width, opts.rowHeight, {
-        fill: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
-      }));
-    }
-
+    // ── Parallel section header ──────────────────────────────────────────────
     if (row.kind === 'parallel-header' && row.block) {
-      const blockName = row.block.name ?? '(parallel)';
-      const indent = row.depth * 12 + opts.padding;
-      // Section label
-      parts.push(rect(opts.padding, rowY + 2, labelWidth - opts.padding * 2, opts.rowHeight - 4, {
-        fill: isDark ? '#1e3a5f' : '#eff6ff',
-        rx: '3',
-      }));
-      parts.push(text(indent + 8, midY + 4, blockName, {
-        fill: isDark ? '#93c5fd' : '#1d4ed8',
-        'font-size': '12',
-        'font-weight': '600',
+      const indent = row.depth * 14 + opts.padding;
+      const blockName = (row.block.name ?? '(parallel)').toUpperCase();
+      parts.push(text(indent, midY + 4, blockName, {
+        fill: isDark ? '#818cf8' : '#6366f1',
+        'font-size': '9', 'font-weight': '700', 'letter-spacing': '0.08em',
         'font-family': opts.fontFamily,
       }));
       continue;
     }
 
+    // ── Task ────────────────────────────────────────────────────────────────
     if (row.kind === 'task' && row.task) {
-      const task = row.task;
+      const task   = row.task;
       const isSubtask = row.depth > 0;
-      const indent = row.depth * 16 + opts.padding;
-      const barH = isSubtask ? opts.rowHeight * 0.55 : opts.rowHeight * 0.65;
-      const barY = midY - barH / 2;
+      const indent    = row.depth * 14 + opts.padding;
+      const color     = isDark ? STATUS_DARK[task.status] : STATUS_COLORS[task.status];
+      const isCancelled = task.status === 'cancelled';
+      const isPending   = task.status === 'new' || task.status === 'deferred' || task.status === 'paused';
+      const lineColor   = isCancelled ? mutedColor : color;
+      const mainOpacity = isCancelled ? 0.4 : (isPending ? 0.6 : 1);
+      const sw = isSubtask ? 1.5 : 2;
+      const dotR = isSubtask ? 3 : 4;
 
-      // Label
-      const labelText = task.name.length > 28 ? task.name.slice(0, 26) + '…' : task.name;
-      const statusDot = STATUS_COLORS[task.status];
-      // Status dot
-      parts.push(`<circle cx="${indent + 6}" cy="${midY}" r="4" fill="${statusDot}"/>`);
-      parts.push(text(indent + 16, midY + 4, labelText, {
-        fill: textColor,
+      // Label: tiny status dot + name
+      parts.push(circle(indent + 4, midY, 2.5, {
+        fill: lineColor, opacity: mainOpacity,
+      }));
+      const labelText = task.name.length > 27 ? task.name.slice(0, 25) + '…' : task.name;
+      parts.push(text(indent + 12, midY + 4, labelText, {
+        fill: isCancelled ? mutedColor : textColor,
         'font-size': isSubtask ? '11' : '12',
         'font-family': opts.fontFamily,
-        ...(task.status === 'cancelled' ? { 'text-decoration': 'line-through', opacity: '0.6' } : {}),
+        opacity: isCancelled ? '0.45' : '1',
       }));
 
       if (!task.computedStart || !task.computedEnd) continue;
 
-      const barX = dateToX(task.computedStart);
-      const barW = Math.max(4, dateToX(task.computedEnd) - barX);
-      const color = isDark ? STATUS_DARK[task.status] : STATUS_COLORS[task.status];
-
-      // Bar
-      parts.push(rect(barX, barY, barW, barH, {
-        fill: color,
-        rx: '3',
-        opacity: task.status === 'cancelled' ? '0.4' : '0.85',
-        'clip-path': 'url(#chart-clip)',
-      }));
-
-      // Blocked diagonal stripe overlay
-      if (task.status === 'blocked') {
-        parts.push(rect(barX, barY, barW, barH, {
-          fill: 'url(#blocked-stripe)',
-          rx: '3',
-          'clip-path': 'url(#chart-clip)',
-        }));
-      }
-
-      // Cancelled strikethrough
-      if (task.status === 'cancelled') {
-        parts.push(line(barX, midY, barX + barW, midY, {
-          stroke: isDark ? '#6b7280' : '#374151',
-          'stroke-width': '2',
-          opacity: '0.7',
-          'clip-path': 'url(#chart-clip)',
-        }));
-      }
-
-      // Progress fill
-      if (task.progress !== undefined && task.progress > 0) {
-        const progW = barW * (task.progress / 100);
-        parts.push(rect(barX, barY, progW, barH, {
-          fill: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.2)',
-          rx: '3',
-          'clip-path': 'url(#chart-clip)',
-        }));
-      }
-
-      // blocked:X — pre-task gap (red), delayed:X — post-task overrun (orange)
-      const delayedMod = task.modifiers.find(m => m.startsWith('delayed:'));
+      const delayedMod    = task.modifiers.find(m => m.startsWith('delayed:'));
       const blockedTimeMod = task.modifiers.find(m => m.startsWith('blocked:'));
 
-      // Ghost bar: original planned position (only when task start was shifted by blocked)
+      // Main line ends at delayStart (if delayed), otherwise at computedEnd
+      const taskEndDate = (delayedMod && task.delayStart) ? task.delayStart : task.computedEnd;
+      const x1 = dateToX(task.computedStart);
+      const x2 = Math.max(x1 + 5, dateToX(taskEndDate));
+
+      // Row track guide (very faint)
+      parts.push(line(chartLeft, midY, chartLeft + chartWidth, midY, {
+        stroke: trackColor, 'stroke-width': '1', 'clip-path': 'url(#chart-clip)',
+      }));
+
+      // ── Ghost line (blocked original position) ──────────────────────────
       if (blockedTimeMod && task.plannedStart && task.plannedEnd) {
-        const ghostX = dateToX(task.plannedStart);
-        const ghostW = Math.max(4, dateToX(task.plannedEnd) - ghostX);
-        parts.push(rect(ghostX, barY + barH * 0.2, ghostW, barH * 0.6, {
-          fill: '#ef4444', rx: '3', opacity: '0.12', 'clip-path': 'url(#chart-clip)',
+        const gx1 = dateToX(task.plannedStart);
+        const gx2 = Math.max(gx1 + 4, dateToX(task.plannedEnd));
+        parts.push(line(gx1, midY, gx2, midY, {
+          stroke: '#ef4444', 'stroke-width': String(sw - 0.5),
+          'stroke-dasharray': '3,3', 'stroke-linecap': 'round',
+          opacity: '0.35', 'clip-path': 'url(#chart-clip)',
         }));
-        parts.push(rect(ghostX, barY + barH * 0.2, ghostW, barH * 0.6, {
-          fill: 'none', stroke: '#ef4444', 'stroke-width': '1', 'stroke-dasharray': '3,2',
-          rx: '3', opacity: '0.45', 'clip-path': 'url(#chart-clip)',
+        parts.push(circle(gx1, midY, dotR - 1, {
+          fill: 'none', stroke: '#ef4444', 'stroke-width': '1.5',
+          opacity: '0.35', 'clip-path': 'url(#chart-clip)',
         }));
-        // Thin connector from ghost to actual start
-        const connX1 = ghostX + ghostW;
-        if (barX > connX1 + 3) {
-          parts.push(line(connX1, midY, barX, midY, {
-            stroke: '#ef4444', 'stroke-width': '1', 'stroke-dasharray': '2,3',
-            opacity: '0.4', 'clip-path': 'url(#chart-clip)',
-          }));
-        }
-      }
-
-      // Delayed overrun overlay: orange hatched region at the END of the actual bar
-      if (delayedMod && task.delayStart && task.computedEnd) {
-        const ovX = dateToX(task.delayStart);
-        const ovW = Math.max(4, dateToX(task.computedEnd) - ovX);
-        parts.push(rect(ovX, barY, ovW, barH, {
-          fill: '#f59e0b', rx: '3', opacity: '0.3', 'clip-path': 'url(#chart-clip)',
+        parts.push(circle(gx2, midY, dotR - 1, {
+          fill: 'none', stroke: '#ef4444', 'stroke-width': '1.5',
+          opacity: '0.35', 'clip-path': 'url(#chart-clip)',
         }));
-        parts.push(rect(ovX, barY, ovW, barH, {
-          fill: 'none', stroke: '#f59e0b', 'stroke-width': '1.5', 'stroke-dasharray': '4,3',
-          rx: '3', opacity: '0.7', 'clip-path': 'url(#chart-clip)',
-        }));
-        // Vertical marker at planned-end boundary
-        parts.push(line(ovX, barY - 2, ovX, barY + barH + 2, {
-          stroke: '#f59e0b', 'stroke-width': '1.5', opacity: '0.6',
-          'clip-path': 'url(#chart-clip)',
-        }));
-      }
-
-      // Deadline hairline
-      if (task.modifiers.includes('deadline') && task.dueDate) {
-        const dlX = dateToX(new Date(task.dueDate + 'T00:00:00Z'));
-        parts.push(line(dlX, rowY + 2, dlX, rowY + opts.rowHeight - 2, {
-          stroke: '#ef4444',
-          'stroke-width': '2',
-          'stroke-dasharray': '3,2',
-          'clip-path': 'url(#chart-clip)',
-        }));
-      }
-
-      // Assignee circles
-      if (task.assignees.length > 0) {
-        const maxCircles = 3;
-        const shown = task.assignees.slice(0, maxCircles);
-        const circleR = 9;
-        let cx = barX + barW - circleR - 2;
-        const cy = midY;
-        for (let ai = shown.length - 1; ai >= 0; ai--) {
-          const assignee = shown[ai];
-          parts.push(`<circle cx="${cx}" cy="${cy}" r="${circleR}" fill="${isDark ? '#334155' : '#fff'}" stroke="${color}" stroke-width="1.5" clip-path="url(#chart-clip)"/>`);
-          parts.push(text(cx, cy + 3.5, initials(assignee), {
-            fill: isDark ? '#e2e8f0' : '#1e293b',
-            'font-size': '8',
-            'font-weight': '600',
-            'text-anchor': 'middle',
-            'font-family': opts.fontFamily,
+        if (x1 > gx2 + 6) {
+          parts.push(line(gx2, midY, x1, midY, {
+            stroke: '#ef4444', 'stroke-width': '1',
+            'stroke-dasharray': '2,5', opacity: '0.2',
             'clip-path': 'url(#chart-clip)',
           }));
-          cx -= circleR * 1.6;
         }
       }
 
-      // Bar label (task name inside/beside bar if wide enough)
-      if (barW > 60) {
-        parts.push(text(barX + 6, midY + 4, task.name.length > 20 ? task.name.slice(0, 18) + '…' : task.name, {
-          fill: '#fff',
-          'font-size': '10',
-          'font-family': opts.fontFamily,
-          opacity: '0.9',
+      // ── Main task line ───────────────────────────────────────────────────
+      const dashArr = isPending ? '5,4' : undefined;
+      const span = x2 - x1;
+
+      if (task.progress != null && task.progress > 0 && !isCancelled) {
+        const progX = x1 + span * (task.progress / 100);
+        // Dim trailing portion
+        parts.push(line(x1, midY, x2, midY, {
+          stroke: lineColor, 'stroke-width': String(sw), opacity: '0.2',
+          'stroke-linecap': 'round', 'clip-path': 'url(#chart-clip)',
+          ...(dashArr ? { 'stroke-dasharray': dashArr } : {}),
+        }));
+        // Bright leading portion
+        parts.push(line(x1, midY, progX, midY, {
+          stroke: lineColor, 'stroke-width': String(sw + 0.5),
+          'stroke-linecap': 'round', 'clip-path': 'url(#chart-clip)',
+        }));
+      } else {
+        parts.push(line(x1, midY, x2, midY, {
+          stroke: lineColor, 'stroke-width': String(sw), opacity: String(mainOpacity),
+          'stroke-linecap': 'round', 'clip-path': 'url(#chart-clip)',
+          ...(dashArr ? { 'stroke-dasharray': dashArr } : {}),
+        }));
+      }
+
+      // Start dot (filled)
+      parts.push(circle(x1, midY, dotR, {
+        fill: lineColor, opacity: String(mainOpacity), 'clip-path': 'url(#chart-clip)',
+      }));
+
+      // End dot: filled for done, hollow otherwise
+      if (task.status === 'done') {
+        parts.push(circle(x2, midY, dotR, { fill: lineColor, 'clip-path': 'url(#chart-clip)' }));
+      } else {
+        parts.push(circle(x2, midY, dotR, {
+          fill: bgColor, stroke: lineColor, 'stroke-width': '1.5',
+          opacity: String(mainOpacity), 'clip-path': 'url(#chart-clip)',
+        }));
+      }
+
+      // ── Delayed overrun (orange dotted extension) ────────────────────────
+      if (delayedMod && task.delayStart && task.computedEnd) {
+        const ox1 = dateToX(task.delayStart);
+        const ox2 = Math.max(ox1 + 5, dateToX(task.computedEnd));
+        parts.push(line(ox1, midY, ox2, midY, {
+          stroke: '#f59e0b', 'stroke-width': String(sw),
+          'stroke-dasharray': '4,3', 'stroke-linecap': 'round',
+          opacity: '0.7', 'clip-path': 'url(#chart-clip)',
+        }));
+        parts.push(circle(ox2, midY, dotR, {
+          fill: 'none', stroke: '#f59e0b', 'stroke-width': '1.5',
+          opacity: '0.7', 'clip-path': 'url(#chart-clip)',
+        }));
+      }
+
+      // ── Deadline hairline ────────────────────────────────────────────────
+      if (task.modifiers.includes('deadline') && task.dueDate) {
+        const dlX = dateToX(new Date(task.dueDate + 'T00:00:00Z'));
+        parts.push(line(dlX, rowY + 3, dlX, rowY + opts.rowHeight - 3, {
+          stroke: '#ef4444', 'stroke-width': '1.5',
+          'stroke-dasharray': '2,2', opacity: '0.6',
           'clip-path': 'url(#chart-clip)',
         }));
       }
 
-      // Transparent clickable overlay for the whole row (enables task edit on click)
+      // ── Assignee circles ─────────────────────────────────────────────────
+      if (task.assignees.length > 0) {
+        const circleR = 8;
+        const visualEnd = (delayedMod && task.delayStart && task.computedEnd)
+          ? dateToX(task.computedEnd)
+          : x2;
+        let cx = visualEnd + circleR + 5;
+        for (const assignee of task.assignees.slice(0, 3)) {
+          parts.push(circle(cx, midY, circleR, {
+            fill: bgColor, stroke: lineColor, 'stroke-width': '1.5',
+            'clip-path': 'url(#chart-clip)',
+          }));
+          parts.push(text(cx, midY + 3.5, initials(assignee), {
+            fill: textColor, 'font-size': '7', 'font-weight': '600',
+            'text-anchor': 'middle', 'font-family': opts.fontFamily,
+            'clip-path': 'url(#chart-clip)',
+          }));
+          cx += circleR * 1.9;
+        }
+      }
+
+      // ── Clickable overlay ────────────────────────────────────────────────
       if (task.description) {
         parts.push(`<rect x="0" y="${rowY}" width="${opts.width}" height="${opts.rowHeight}" fill="transparent" data-line="${task.line}" style="cursor:pointer"><title>${escapeXml(task.description)}</title></rect>`);
       } else {
         parts.push(rect(0, rowY, opts.width, opts.rowHeight, {
-          fill: 'transparent',
-          'data-line': task.line,
-          style: 'cursor:pointer',
+          fill: 'transparent', 'data-line': task.line, style: 'cursor:pointer',
         }));
       }
     }
 
+    // ── Milestone ────────────────────────────────────────────────────────────
     if (row.kind === 'milestone' && row.milestone) {
-      const ms = row.milestone;
-      const indent = row.depth * 16 + opts.padding;
+      const ms     = row.milestone;
+      const indent = row.depth * 14 + opts.padding;
 
-      // Label
-      const labelText = ms.name.length > 28 ? ms.name.slice(0, 26) + '…' : ms.name;
-      parts.push(text(indent + 16, midY + 4, labelText, {
-        fill: textColor,
-        'font-size': '12',
-        'font-style': 'italic',
-        'font-family': opts.fontFamily,
+      const labelText = ms.name.length > 27 ? ms.name.slice(0, 25) + '…' : ms.name;
+      parts.push(text(indent + 12, midY + 4, labelText, {
+        fill: isDark ? '#fbbf24' : '#92400e',
+        'font-size': '11', 'font-style': 'italic', 'font-family': opts.fontFamily,
       }));
 
       if (!ms.computedDate) continue;
       const dmx = dateToX(ms.computedDate);
-      const dmSize = opts.rowHeight * 0.5;
+      const msR  = row.depth > 0 ? 4 : 5;
 
-      // +deadline milestone: full-height red hairline
       if (ms.modifiers.includes('deadline')) {
         parts.push(line(dmx, opts.headerHeight, dmx, totalHeight, {
-          stroke: '#ef4444',
-          'stroke-width': '1',
-          opacity: '0.35',
-          'stroke-dasharray': '4,3',
+          stroke: '#ef4444', 'stroke-width': '1', opacity: '0.2',
           'clip-path': 'url(#chart-clip)',
         }));
       }
 
-      parts.push(diamond(dmx, midY, dmSize, isDark ? '#fbbf24' : '#d97706'));
-      // Milestone label
-      parts.push(text(dmx + dmSize / 2 + 4, midY + 4, ms.name.slice(0, 18), {
+      // Bullseye: filled outer ring + bg inner dot
+      parts.push(circle(dmx, midY, msR, {
+        fill: isDark ? '#fbbf24' : '#d97706', 'clip-path': 'url(#chart-clip)',
+      }));
+      parts.push(circle(dmx, midY, msR - 2.5, {
+        fill: bgColor, 'clip-path': 'url(#chart-clip)',
+      }));
+
+      parts.push(text(dmx + msR + 4, midY + 3.5, ms.name.slice(0, 18), {
         fill: isDark ? '#fbbf24' : '#92400e',
-        'font-size': '10',
-        'font-weight': '600',
-        'font-family': opts.fontFamily,
+        'font-size': '9', 'font-weight': '600', 'font-family': opts.fontFamily,
         'clip-path': 'url(#chart-clip)',
       }));
     }
   }
 
-  // ── Today line ─────────────────────────────────────────────────────────────
+  // ── Today line ──────────────────────────────────────────────────────────────
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
   if (today >= minDate && today <= maxDate) {
     const tx = dateToX(today);
     parts.push(line(tx, opts.headerHeight, tx, totalHeight, {
-      stroke: '#ef4444',
-      'stroke-width': '1.5',
-      opacity: '0.7',
-      'stroke-dasharray': '4,3',
+      stroke: '#ef4444', 'stroke-width': '1', opacity: '0.5',
     }));
-    parts.push(text(tx + 3, opts.headerHeight - 4, 'Today', {
-      fill: '#ef4444',
-      'font-size': '10',
-      'font-family': opts.fontFamily,
-    }));
+    parts.push(circle(tx, opts.headerHeight, 3, { fill: '#ef4444', opacity: '0.7' }));
   }
 
-  // ── Separator line between label and chart ─────────────────────────────────
+  // ── Label/chart separator ───────────────────────────────────────────────────
   parts.push(line(chartLeft, 0, chartLeft, totalHeight, {
-    stroke: gridColor,
-    'stroke-width': '1',
+    stroke: borderColor, 'stroke-width': '1', opacity: '0.6',
   }));
 
-  const svgContent = parts.join('\n');
-
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${opts.width}" height="${totalHeight}" viewBox="0 0 ${opts.width} ${totalHeight}" font-family="${opts.fontFamily}">
-${svgContent}
+${parts.join('\n')}
 </svg>`;
 }
+
