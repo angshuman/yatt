@@ -455,8 +455,8 @@ export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): strin
             'clip-path': 'url(#chart-clip)',
           }));
         }
-        // Left-edge accent on the actual (shifted) bar
-        parts.push(rect(barX, barY, 3, barH, {
+        // Right/trailing-edge accent on the actual (shifted) bar
+        parts.push(rect(barX + barW - 3, barY, 3, barH, {
           fill: ghostColor,
           rx: '1',
           'clip-path': 'url(#chart-clip)',

@@ -21,7 +21,7 @@ parallel: design | after:phase1
 end: design
 
 parallel: engineering | after:phase1
-[x] API scaffold | id:api | 3d | @bob | blocked 1w
+[x] API scaffold | id:api | 3d | @bob | delayed 2w | blocked 1w
 [?] Auth service | 4d | @bob | %45 | after:api
 [x] Core features | 1w | @alice | after:api | delayed 1w
 end: engineering
