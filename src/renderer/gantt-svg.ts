@@ -19,27 +19,27 @@ interface ResolvedOptions {
 }
 
 const STATUS_COLORS: Record<Status, string> = {
-  new:       '#94a3b8',
-  active:    '#3b82f6',
-  done:      '#22c55e',
-  blocked:   '#ef4444',
-  'at-risk': '#f59e0b',
-  deferred:  '#a78bfa',
-  cancelled: '#6b7280',
-  review:    '#8b5cf6',
-  paused:    '#64748b',
+  new:       '#93a8c4',
+  active:    '#6a9fd8',
+  done:      '#6aab85',
+  blocked:   '#c97070',
+  'at-risk': '#c9a04a',
+  deferred:  '#a892cc',
+  cancelled: '#8a96a6',
+  review:    '#8e7ec4',
+  paused:    '#7a90a6',
 };
 
 const STATUS_DARK: Record<Status, string> = {
-  new:       '#94a3b8',
-  active:    '#60a5fa',
-  done:      '#4ade80',
-  blocked:   '#f87171',
-  'at-risk': '#fbbf24',
-  deferred:  '#c4b5fd',
-  cancelled: '#4b5563',
-  review:    '#a78bfa',
-  paused:    '#64748b',
+  new:       '#7a90a8',
+  active:    '#5588c0',
+  done:      '#56986e',
+  blocked:   '#b85a5a',
+  'at-risk': '#b8902a',
+  deferred:  '#9278b8',
+  cancelled: '#606878',
+  review:    '#7868b0',
+  paused:    '#607080',
 };
 
 function escapeXml(s: string): string {
@@ -457,11 +457,11 @@ export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): strin
       }
 
       // ── Assignee circles ─────────────────────────────────────────────────
+      const circleR = 8;
+      const visualEnd = (delayedMod && task.delayStart && task.computedEnd)
+        ? dateToX(task.computedEnd)
+        : x2;
       if (task.assignees.length > 0) {
-        const circleR = 8;
-        const visualEnd = (delayedMod && task.delayStart && task.computedEnd)
-          ? dateToX(task.computedEnd)
-          : x2;
         let cx = visualEnd + circleR + 5;
         for (const assignee of task.assignees.slice(0, 3)) {
           parts.push(circle(cx, midY, circleR, {
@@ -474,6 +474,27 @@ export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): strin
             'clip-path': 'url(#chart-clip)',
           }));
           cx += circleR * 1.9;
+        }
+      }
+
+      // ── Task name label in chart area ────────────────────────────────────
+      // Show name above the line starting from x1, clipped to chart right edge
+      {
+        const nameX = x1 + dotR + 4;
+        const availW = chartLeft + chartWidth - nameX - 8;
+        if (availW > 30) {
+          // ~6.5px per char at font-size 10
+          const maxChars = Math.max(4, Math.floor(availW / 6.5));
+          const nameLabel = task.name.length > maxChars
+            ? task.name.slice(0, maxChars - 1) + '…'
+            : task.name;
+          parts.push(text(nameX, midY - (isSubtask ? 5 : 6), nameLabel, {
+            fill: mutedColor,
+            'font-size': isSubtask ? '9' : '10',
+            'font-family': opts.fontFamily,
+            opacity: isCancelled ? '0.4' : '0.75',
+            'clip-path': 'url(#chart-clip)',
+          }));
         }
       }
 

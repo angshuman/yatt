@@ -498,6 +498,20 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .ptask-row[data-line] { cursor: pointer; }
 .ptask-row[data-line]:hover { background: rgba(56,139,253,0.06); }
 
+/* ── gantt hover card ── */
+#gantt-hover-card { display:none; position:fixed; z-index:9999; pointer-events:none;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; min-width: 180px; max-width: 260px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25); font-size: 12px; }
+.ghc-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; line-height: 1.3; }
+.ghc-row { display: flex; align-items: center; gap: 6px; color: var(--muted); margin-bottom: 3px; font-size: 11px; }
+.ghc-status { display: inline-flex; align-items: center; gap: 4px; }
+.ghc-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.ghc-desc { color: var(--muted); font-style: italic; font-size: 11px; margin-top: 6px;
+  padding-top: 6px; border-top: 1px solid var(--border); line-height: 1.4; }
+.ghc-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+.ghc-tag { background: var(--border); color: var(--muted); border-radius: 3px; padding: 1px 5px; font-size: 10px; }
+
 /* ── shared atoms ── */
 .sdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .avatar { display: inline-flex; align-items: center; justify-content: center;
@@ -690,7 +704,7 @@ function initYattCtrl(ctrlId, bidx) {
   if (!ctrl) return;
   ctrl.setAttribute('data-bidx', bidx);
 
-  // Timeline: click on task bar overlay rect
+  // Timeline: click + hover on task rows
   var svgEl = ctrl.querySelector('[data-panel="timeline"] svg');
   if (svgEl) {
     svgEl.addEventListener('click', function(e) {
@@ -705,6 +719,19 @@ function initYattCtrl(ctrlId, bidx) {
         el = el.parentElement;
       }
     });
+    svgEl.addEventListener('mousemove', function(e) {
+      var el = e.target;
+      while (el && el !== svgEl) {
+        var dl = el.getAttribute ? el.getAttribute('data-line') : null;
+        if (dl) {
+          var task = findTask(bidx, parseInt(dl));
+          if (task) { showGanttHoverCard(task, e.clientX, e.clientY); return; }
+        }
+        el = el.parentElement;
+      }
+      hideGanttHoverCard();
+    });
+    svgEl.addEventListener('mouseleave', hideGanttHoverCard);
   }
 
   // Kanban: click-to-edit + drag-drop
@@ -810,6 +837,69 @@ function avatarEl(name, large) {
   var clean = name.replace(/[^a-zA-Z]/g,'');
   var init = (clean.slice(0,2) || name.slice(0,2)).toUpperCase();
   return '<span class="' + (large ? 'avatar avatar-lg' : 'avatar') + '" title="@' + esc(name) + '">' + esc(init) + '</span>';
+}
+
+var _ghcTask = null;
+function showGanttHoverCard(task, mx, my) {
+  var card = document.getElementById('gantt-hover-card');
+  if (!card) return;
+  if (_ghcTask === task) {
+    // Just reposition
+    positionGhc(card, mx, my);
+    return;
+  }
+  _ghcTask = task;
+  var STATUS_COLOR_MAP = {
+    new:'#93a8c4', active:'#6a9fd8', done:'#6aab85', blocked:'#c97070',
+    'at-risk':'#c9a04a', deferred:'#a892cc', cancelled:'#8a96a6',
+    review:'#8e7ec4', paused:'#7a90a6'
+  };
+  var dotColor = STATUS_COLOR_MAP[task.status] || '#94a3b8';
+  var html = '<div class="ghc-name">' + esc(task.name) + '</div>';
+  html += '<div class="ghc-row ghc-status"><span class="ghc-dot" style="background:' + dotColor + '"></span>' + esc(task.status) + '</div>';
+  if (task.assignees && task.assignees.length) {
+    html += '<div class="ghc-row">👤 ' + task.assignees.map(function(a){ return '@'+esc(a); }).join(', ') + '</div>';
+  }
+  if (task.progress != null) {
+    html += '<div class="ghc-row">◐ ' + task.progress + '%</div>';
+  }
+  if (task.startDate || task.dueDate) {
+    html += '<div class="ghc-row">📅 ' + esc(task.startDate || '?') + (task.dueDate ? ' → ' + esc(task.dueDate) : '') + '</div>';
+  }
+  if (task.duration) {
+    html += '<div class="ghc-row">⏳ ' + esc(task.duration.value + task.duration.unit) + '</div>';
+  }
+  var mods = (task.modifiers || []);
+  var delayedM = mods.find(function(m){ return m.match(/^delayed:/); });
+  var blockedM = mods.find(function(m){ return m.match(/^blocked:/); });
+  if (delayedM) html += '<div class="ghc-row" style="color:#c9a04a">⏱ delayed ' + esc(delayedM.split(':')[1]) + '</div>';
+  if (blockedM) html += '<div class="ghc-row" style="color:#c97070">🚫 blocked ' + esc(blockedM.split(':')[1]) + '</div>';
+  if (task.tags && task.tags.length) {
+    html += '<div class="ghc-tags">' + task.tags.map(function(t){ return '<span class="ghc-tag">#'+esc(t)+'</span>'; }).join('') + '</div>';
+  }
+  if (task.description) {
+    html += '<div class="ghc-desc">' + esc(task.description) + '</div>';
+  }
+  card.innerHTML = html;
+  card.style.display = 'block';
+  positionGhc(card, mx, my);
+}
+function positionGhc(card, mx, my) {
+  var pad = 14;
+  var w = card.offsetWidth || 220;
+  var h = card.offsetHeight || 120;
+  var left = mx + pad;
+  var top  = my - h / 2;
+  if (left + w > window.innerWidth - 8) left = mx - w - pad;
+  if (top < 8) top = 8;
+  if (top + h > window.innerHeight - 8) top = window.innerHeight - h - 8;
+  card.style.left = left + 'px';
+  card.style.top  = top  + 'px';
+}
+function hideGanttHoverCard() {
+  _ghcTask = null;
+  var card = document.getElementById('gantt-hover-card');
+  if (card) card.style.display = 'none';
 }
 function inlineMd(s) {
   var r = esc(s).replace(/\`([^\`]+)\`/g,'<code>$1</code>');
@@ -1276,6 +1366,7 @@ function buildShellHtml(rootDir: string): string {
   </div>
 </div>
 
+<div id="gantt-hover-card"></div>
 <div id="task-edit-overlay" class="hidden">
   <div id="task-edit-modal">
     <div class="te-title">Edit Task</div>
