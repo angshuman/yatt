@@ -841,7 +841,7 @@ function initKanban(kbEl, bidx) {
       var newSource = patchBlockSource(block.source, task.line, serializeTaskLine(updated));
       block.source = newSource;
       // Rebuild kanban in-place so we stay on the kanban tab
-      kbEl.innerHTML = buildKanbanHtml(block.tasks || [], true);
+      kbEl.innerHTML = buildKanbanHtml(block.tasks || []);
       initKanban(kbEl, bidx);
       saveBlock(bidx, newSource, null);
     });
@@ -1015,7 +1015,7 @@ function yattCtrlSetView(ctrlId, panel) {
   });
 }
 
-function buildKanbanHtml(tasks, compact) {
+function buildKanbanHtml(tasks) {
   var byStatus = {};
   KANBAN_COLS.forEach(function(s) { byStatus[s] = []; });
   (tasks || []).forEach(function(t) {
@@ -1026,7 +1026,6 @@ function buildKanbanHtml(tasks, compact) {
   var html = '';
   KANBAN_COLS.forEach(function(status) {
     var cards = byStatus[status] || [];
-    if (compact && !cards.length) return;
     var color = STATUS_COLOR[status] || '#7d8590';
     var label = STATUS_LABEL[status] || status;
     html += '<div class="k-col" data-status="' + esc(status) + '">';
@@ -1107,7 +1106,7 @@ function buildYattCtrlHtml(block, ctrlId, bidx) {
     ? '<div class="yatt-errors">' + block.errors.map(esc).join('<br>') + '</div>' : '';
   var tl = '<div class="yatt-ctrl-panel active" data-panel="timeline">' + (block.html || '') + '</div>';
   var kb = '<div class="yatt-ctrl-panel" data-panel="kanban"><div class="ctrl-kanban">' +
-    buildKanbanHtml(block.tasks || [], true) + '</div></div>';
+    buildKanbanHtml(block.tasks || []) + '</div></div>';
   var pe = '<div class="yatt-ctrl-panel" data-panel="people"><div class="ctrl-people">' +
     buildPeopleHtml(block.tasks || []) + '</div></div>';
   var md = '<div class="yatt-ctrl-panel" data-panel="markdown">' +
