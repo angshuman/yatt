@@ -322,6 +322,38 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 #save-status.saved { color: var(--green); }
 #save-status.error { color: var(--red); }
 
+/* ── git widget ── */
+#git-widget { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: auto; }
+#git-widget.hidden { display: none; }
+.git-branch { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted);
+  background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; }
+.git-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.git-dot.dirty { background: var(--orange); }
+.git-count { font-size: 10px; color: var(--muted); display: flex; align-items: center; gap: 2px; }
+.git-count.ahead { color: #6a9fd8; }
+.git-count.behind { color: var(--orange); }
+.git-btn { background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+  border-radius: 4px; padding: 2px 9px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+.git-btn:hover { border-color: var(--accent); color: var(--accent-hi); }
+.git-btn:disabled { opacity: 0.4; cursor: default; }
+.git-btn.primary { border-color: var(--accent); color: var(--accent-hi); }
+#git-msg { font-size: 11px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; flex-shrink: 0; }
+#git-msg.ok { color: var(--green); }
+#git-msg.err { color: var(--red); }
+/* commit modal */
+#git-commit-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1001;
+  display: flex; align-items: center; justify-content: center; }
+#git-commit-modal.hidden { display: none; }
+#git-commit-box { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px; width: 360px; display: flex; flex-direction: column; gap: 12px; }
+#git-commit-box h3 { margin: 0; font-size: 14px; color: var(--text); }
+#git-commit-msg { width: 100%; box-sizing: border-box; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 5px; padding: 8px 10px; font-size: 12px; font-family: inherit;
+  resize: vertical; min-height: 60px; }
+#git-commit-msg:focus { outline: none; border-color: var(--accent); }
+.git-commit-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
 /* ── workspace ── */
 #workspace { flex: 1; display: flex; min-height: 0; }
 
@@ -607,7 +639,7 @@ function saveBlock(bidx, newSource, onDone) {
   fetch('/api/save-block?p=' + encodeURIComponent(state.currentFile) + '&idx=' + bidx, {
     method: 'POST', headers: {'Content-Type':'text/plain;charset=utf-8'}, body: newSource
   }).then(function(r) {
-    if (r.ok) { if (onDone) onDone(null); }
+    if (r.ok) { if (onDone) onDone(null); refreshGitStatus(); }
     else r.json().then(function(d){ if (onDone) onDone(d.error || 'Error'); });
   }).catch(function(e){ if (onDone) onDone(e.message); });
 }
@@ -1334,6 +1366,114 @@ window.addEventListener('DOMContentLoaded', function() {
 window.addEventListener('popstate', function(e) {
   if (e.state && e.state.p) loadFile(e.state.p);
 });
+
+// ── Git integration ────────────────────────────────────────────────────────────
+
+var gitState = { available: false, dirty: false, ahead: 0, behind: 0, branch: '', hasRemote: false };
+var gitBusy = false;
+
+function refreshGitStatus() {
+  fetch('/api/git/status').then(function(r){ return r.json(); }).then(function(s) {
+    gitState = s;
+    renderGitWidget();
+  }).catch(function(){});
+}
+
+function renderGitWidget() {
+  var w = document.getElementById('git-widget');
+  if (!w) return;
+  if (!gitState.available) { w.classList.add('hidden'); return; }
+  w.classList.remove('hidden');
+
+  document.getElementById('git-dot').className = 'git-dot' + (gitState.dirty ? ' dirty' : '');
+  document.getElementById('git-branch-name').textContent = gitState.branch;
+
+  var behindEl = document.getElementById('git-behind');
+  var aheadEl  = document.getElementById('git-ahead');
+  if (gitState.behind > 0) {
+    document.getElementById('git-behind-n').textContent = gitState.behind;
+    behindEl.classList.remove('hidden');
+  } else { behindEl.classList.add('hidden'); }
+  if (gitState.ahead > 0) {
+    document.getElementById('git-ahead-n').textContent = gitState.ahead;
+    aheadEl.classList.remove('hidden');
+  } else { aheadEl.classList.add('hidden'); }
+
+  document.getElementById('git-pull-btn').style.display = gitState.hasRemote ? '' : 'none';
+  document.getElementById('git-push-btn').style.display = gitState.hasRemote ? '' : 'none';
+  document.getElementById('git-commit-btn').disabled = gitBusy;
+  document.getElementById('git-pull-btn').disabled  = gitBusy;
+  document.getElementById('git-push-btn').disabled  = gitBusy;
+}
+
+function setGitMsg(msg, type) {
+  var el = document.getElementById('git-msg');
+  el.textContent = msg;
+  el.className = type === 'ok' ? 'ok' : type === 'err' ? 'err' : '';
+  if (msg && type !== 'err') setTimeout(function(){ if (el.textContent === msg) el.textContent = ''; }, 4000);
+}
+
+function gitDoPull() {
+  if (gitBusy) return;
+  gitBusy = true; renderGitWidget(); setGitMsg('Pulling…', '');
+  fetch('/api/git/pull', { method: 'POST' }).then(function(r){ return r.json(); }).then(function(r) {
+    gitBusy = false;
+    if (r.conflict) { setGitMsg('Merge conflict — resolve from CLI', 'err'); }
+    else if (!r.ok)  { setGitMsg('Pull failed — ' + (r.output || r.error || '').slice(0, 60), 'err'); }
+    else             { setGitMsg('Pulled ✓', 'ok'); }
+    refreshGitStatus();
+  }).catch(function(e){ gitBusy = false; setGitMsg('Pull error', 'err'); refreshGitStatus(); });
+}
+
+function gitDoPush() {
+  if (gitBusy) return;
+  gitBusy = true; renderGitWidget(); setGitMsg('Pushing…', '');
+  fetch('/api/git/push', { method: 'POST' }).then(function(r){ return r.json(); }).then(function(r) {
+    gitBusy = false;
+    if (r.rejected) { setGitMsg('Push rejected — pull first or use CLI', 'err'); }
+    else if (!r.ok) { setGitMsg('Push failed — ' + (r.output || r.error || '').slice(0, 60), 'err'); }
+    else            { setGitMsg('Pushed ✓', 'ok'); }
+    refreshGitStatus();
+  }).catch(function(e){ gitBusy = false; setGitMsg('Push error', 'err'); refreshGitStatus(); });
+}
+
+function openCommitModal() {
+  var now = new Date();
+  var ts = now.getFullYear() + '-' +
+    String(now.getMonth()+1).padStart(2,'0') + '-' +
+    String(now.getDate()).padStart(2,'0') + ' ' +
+    String(now.getHours()).padStart(2,'0') + ':' +
+    String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('git-commit-msg').value = 'Update tasks ' + ts;
+  document.getElementById('git-commit-modal').classList.remove('hidden');
+  setTimeout(function(){ document.getElementById('git-commit-msg').focus(); }, 50);
+}
+
+function closeCommitModal() {
+  document.getElementById('git-commit-modal').classList.add('hidden');
+}
+
+function gitDoCommit() {
+  var msg = document.getElementById('git-commit-msg').value.trim();
+  if (!msg) return;
+  closeCommitModal();
+  gitBusy = true; renderGitWidget(); setGitMsg('Committing…', '');
+  fetch('/api/git/commit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: msg })
+  }).then(function(r){ return r.json(); }).then(function(r) {
+    gitBusy = false;
+    if (r.noop)     { setGitMsg('Nothing to commit', ''); }
+    else if (!r.ok) { setGitMsg('Commit failed — ' + (r.error || r.output || '').slice(0, 60), 'err'); }
+    else            { setGitMsg('Committed ✓', 'ok'); }
+    refreshGitStatus();
+  }).catch(function(e){ gitBusy = false; setGitMsg('Commit error', 'err'); refreshGitStatus(); });
+}
+
+// Initial status fetch + poll every 30s
+refreshGitStatus();
+setInterval(refreshGitStatus, 30000);
 `;
 
 function buildShellHtml(rootDir: string): string {
@@ -1356,6 +1496,15 @@ function buildShellHtml(rootDir: string): string {
     </div>
     <span id="save-status"></span>
     <span id="file-count" style="font-size:11px;color:var(--muted);flex-shrink:0"></span>
+    <div id="git-widget" class="hidden">
+      <span id="git-msg"></span>
+      <span class="git-count behind hidden" id="git-behind" title="commits behind remote">↓<span id="git-behind-n"></span></span>
+      <span class="git-branch"><span class="git-dot" id="git-dot"></span><span id="git-branch-name"></span></span>
+      <span class="git-count ahead hidden" id="git-ahead" title="commits ahead of remote">↑<span id="git-ahead-n"></span></span>
+      <button class="git-btn" id="git-pull-btn" onclick="gitDoPull()" title="Pull latest from remote">Pull</button>
+      <button class="git-btn primary" id="git-commit-btn" onclick="openCommitModal()" title="Commit all changes">Commit</button>
+      <button class="git-btn" id="git-push-btn" onclick="gitDoPush()" title="Push to remote">Push</button>
+    </div>
   </header>
   <div id="workspace">
     <nav id="sidebar"><div id="sidebar-inner"></div></nav>
@@ -1366,6 +1515,16 @@ function buildShellHtml(rootDir: string): string {
   </div>
 </div>
 
+<div id="git-commit-modal" class="hidden">
+  <div id="git-commit-box">
+    <h3>Commit changes</h3>
+    <textarea id="git-commit-msg" placeholder="Commit message"></textarea>
+    <div class="git-commit-actions">
+      <button class="te-btn te-btn-ghost" onclick="closeCommitModal()">Cancel</button>
+      <button class="te-btn te-btn-primary" onclick="gitDoCommit()">Commit</button>
+    </div>
+  </div>
+</div>
 <div id="gantt-hover-card"></div>
 <div id="task-edit-overlay" class="hidden">
   <div id="task-edit-modal">
@@ -1535,9 +1694,108 @@ function createServer(rootDir: string, port: number, sse: SseManager): http.Serv
 
     if (pathname === '/events') { sse.add(res); return; }
 
+    // ── Git API ────────────────────────────────────────────────────────────────
+
+    if (pathname === '/api/git/status' && req.method === 'GET') {
+      gitStatus(rootDir).then(status => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(status));
+      }).catch(e => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      });
+      return;
+    }
+
+    if (pathname === '/api/git/pull' && req.method === 'POST') {
+      runGit(['pull'], rootDir).then(r => {
+        const conflict = r.stdout.includes('CONFLICT') || r.stderr.includes('CONFLICT');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: r.ok && !conflict, conflict, output: r.stdout || r.stderr }));
+        if (r.ok && !conflict) sse.broadcast('reload');
+      }).catch(e => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      });
+      return;
+    }
+
+    if (pathname === '/api/git/commit' && req.method === 'POST') {
+      const chunks: Buffer[] = [];
+      req.on('data', (c: Buffer) => chunks.push(c));
+      req.on('end', () => {
+        let msg = 'Update tasks';
+        try { msg = JSON.parse(Buffer.concat(chunks).toString()).message || msg; } catch {}
+        runGit(['add', '-A'], rootDir).then(a => {
+          if (!a.ok) throw new Error(a.stderr || 'git add failed');
+          return runGit(['commit', '-m', msg], rootDir);
+        }).then(r => {
+          const noop = r.stdout.includes('nothing to commit');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: r.ok || noop, noop, output: r.stdout || r.stderr }));
+        }).catch(e => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: e.message }));
+        });
+      });
+      return;
+    }
+
+    if (pathname === '/api/git/push' && req.method === 'POST') {
+      runGit(['push'], rootDir).then(r => {
+        const rejected = r.stderr.includes('rejected') || r.stderr.includes('[rejected]');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: r.ok && !rejected, rejected, output: r.stdout || r.stderr }));
+      }).catch(e => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      });
+      return;
+    }
+
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not found');
   });
+}
+
+// ── Git helpers ───────────────────────────────────────────────────────────────
+
+function runGit(args: string[], cwd: string): Promise<{ ok: boolean; stdout: string; stderr: string }> {
+  return new Promise(resolve => {
+    execFile('git', args, { cwd, timeout: 15000 }, (err, stdout, stderr) => {
+      resolve({ ok: !err, stdout: stdout.trim(), stderr: stderr.trim() });
+    });
+  });
+}
+
+async function gitStatus(cwd: string): Promise<{
+  available: boolean; dirty: boolean; ahead: number; behind: number; branch: string; hasRemote: boolean;
+}> {
+  const fallback = { available: false, dirty: false, ahead: 0, behind: 0, branch: '', hasRemote: false };
+
+  const branchR = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], cwd);
+  if (!branchR.ok) return fallback;
+  const branch = branchR.stdout || 'HEAD';
+
+  const porcelain = await runGit(['status', '--porcelain'], cwd);
+  if (!porcelain.ok) return fallback;
+  const dirty = porcelain.stdout.length > 0;
+
+  // Check if remote tracking branch exists
+  const remoteR = await runGit(['rev-parse', '--abbrev-ref', '@{u}'], cwd);
+  const hasRemote = remoteR.ok;
+
+  let ahead = 0, behind = 0;
+  if (hasRemote) {
+    const countR = await runGit(['rev-list', '--left-right', '--count', 'HEAD...@{u}'], cwd);
+    if (countR.ok) {
+      const parts = countR.stdout.split(/\s+/);
+      ahead  = parseInt(parts[0] ?? '0', 10) || 0;
+      behind = parseInt(parts[1] ?? '0', 10) || 0;
+    }
+  }
+
+  return { available: true, dirty, ahead, behind, branch, hasRemote };
 }
 
 // ── Port helpers ──────────────────────────────────────────────────────────────
