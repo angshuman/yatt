@@ -583,7 +583,7 @@ var STATUS_LABEL = {
   'at-risk':'At Risk','deferred':'Deferred','cancelled':'Cancelled',
   'review':'Review','paused':'Paused'
 };
-var KANBAN_COLS = ['new','active','review','at-risk','blocked','paused','deferred','done','cancelled'];
+var KANBAN_COLS = ['new','active','review','blocked','paused','done','cancelled'];
 
 var STATUS_SIGIL = {
   'new':' ','active':'~','done':'x','blocked':'!',
@@ -1556,9 +1556,7 @@ function buildShellHtml(rootDir: string): string {
           <option value="active">Active</option>
           <option value="review">Review</option>
           <option value="blocked">Blocked</option>
-          <option value="at-risk">At Risk</option>
           <option value="paused">Paused</option>
-          <option value="deferred">Deferred</option>
           <option value="done">Done</option>
           <option value="cancelled">Cancelled</option>
         </select>
