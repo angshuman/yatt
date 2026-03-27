@@ -430,61 +430,47 @@ export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): strin
         }));
       }
 
-      // +delayed:X — ghost bar at original planned position, orange accent on actual bar
+      // blocked:X — pre-task gap (red), delayed:X — post-task overrun (orange)
       const delayedMod = task.modifiers.find(m => m.startsWith('delayed:'));
       const blockedTimeMod = task.modifiers.find(m => m.startsWith('blocked:'));
-      const shiftMod = delayedMod || blockedTimeMod;
-      if (shiftMod) {
-        const ghostColor = blockedTimeMod ? '#ef4444' : '#f59e0b';
-        if (task.plannedStart && task.plannedEnd) {
-          const ghostX = dateToX(task.plannedStart);
-          const ghostW = Math.max(4, dateToX(task.plannedEnd) - ghostX);
-          parts.push(rect(ghostX, barY + barH * 0.15, ghostW, barH * 0.7, {
-            fill: ghostColor,
-            rx: '3',
-            opacity: '0.2',
-            'clip-path': 'url(#chart-clip)',
-          }));
-          parts.push(rect(ghostX, barY + barH * 0.15, ghostW, barH * 0.7, {
-            fill: 'none',
-            stroke: ghostColor,
-            'stroke-width': '1',
-            'stroke-dasharray': '3,2',
-            rx: '3',
-            opacity: '0.6',
-            'clip-path': 'url(#chart-clip)',
+
+      // Ghost bar: original planned position (only when task start was shifted by blocked)
+      if (blockedTimeMod && task.plannedStart && task.plannedEnd) {
+        const ghostX = dateToX(task.plannedStart);
+        const ghostW = Math.max(4, dateToX(task.plannedEnd) - ghostX);
+        parts.push(rect(ghostX, barY + barH * 0.2, ghostW, barH * 0.6, {
+          fill: '#ef4444', rx: '3', opacity: '0.12', 'clip-path': 'url(#chart-clip)',
+        }));
+        parts.push(rect(ghostX, barY + barH * 0.2, ghostW, barH * 0.6, {
+          fill: 'none', stroke: '#ef4444', 'stroke-width': '1', 'stroke-dasharray': '3,2',
+          rx: '3', opacity: '0.45', 'clip-path': 'url(#chart-clip)',
+        }));
+        // Thin connector from ghost to actual start
+        const connX1 = ghostX + ghostW;
+        if (barX > connX1 + 3) {
+          parts.push(line(connX1, midY, barX, midY, {
+            stroke: '#ef4444', 'stroke-width': '1', 'stroke-dasharray': '2,3',
+            opacity: '0.4', 'clip-path': 'url(#chart-clip)',
           }));
         }
-        // Right/trailing-edge accent on the actual (shifted) bar
-        parts.push(rect(barX + barW - 3, barY, 3, barH, {
-          fill: ghostColor,
-          rx: '1',
+      }
+
+      // Delayed overrun overlay: orange hatched region at the END of the actual bar
+      if (delayedMod && task.delayStart && task.computedEnd) {
+        const ovX = dateToX(task.delayStart);
+        const ovW = Math.max(4, dateToX(task.computedEnd) - ovX);
+        parts.push(rect(ovX, barY, ovW, barH, {
+          fill: '#f59e0b', rx: '3', opacity: '0.3', 'clip-path': 'url(#chart-clip)',
+        }));
+        parts.push(rect(ovX, barY, ovW, barH, {
+          fill: 'none', stroke: '#f59e0b', 'stroke-width': '1.5', 'stroke-dasharray': '4,3',
+          rx: '3', opacity: '0.7', 'clip-path': 'url(#chart-clip)',
+        }));
+        // Vertical marker at planned-end boundary
+        parts.push(line(ovX, barY - 2, ovX, barY + barH + 2, {
+          stroke: '#f59e0b', 'stroke-width': '1.5', opacity: '0.6',
           'clip-path': 'url(#chart-clip)',
         }));
-        // Dashed outline on the actual bar to mark it as shifted
-        parts.push(rect(barX, barY, barW, barH, {
-          fill: 'none',
-          stroke: ghostColor,
-          'stroke-width': '1.5',
-          'stroke-dasharray': '5,3',
-          rx: '3',
-          opacity: '0.8',
-          'clip-path': 'url(#chart-clip)',
-        }));
-        // Dotted connector from ghost end to actual start
-        if (task.plannedEnd) {
-          const connX1 = Math.min(dateToX(task.plannedEnd), barX - 1);
-          const connX2 = barX;
-          if (connX2 > connX1 + 2) {
-            parts.push(line(connX1, midY, connX2, midY, {
-              stroke: ghostColor,
-              'stroke-width': '1',
-              'stroke-dasharray': '2,3',
-              opacity: '0.5',
-              'clip-path': 'url(#chart-clip)',
-            }));
-          }
-        }
       }
 
       // Deadline hairline

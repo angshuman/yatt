@@ -159,15 +159,15 @@ function scheduleTask(task: Task, sequentialAnchor: Date, ctx: ScheduleCtx): voi
     task.computedEnd = new Date(start);
   }
 
-  // +delayed:Xd — shift the actual start/end forward, store original as planned
-  const delayedMod = task.modifiers.find(m => m.startsWith('delayed:'));
-  if (delayedMod) {
-    const delayDur = parseModifierDuration(delayedMod);
-    if (delayDur) {
+  // blocked:Xw — external blocker: shifts start forward, gap appears BEFORE actual bar
+  const blockedMod = task.modifiers.find(m => m.startsWith('blocked:'));
+  if (blockedMod) {
+    const blockDur = parseModifierDuration(blockedMod);
+    if (blockDur) {
       task.plannedStart = new Date(task.computedStart);
       task.plannedEnd   = task.computedEnd ? new Date(task.computedEnd) : undefined;
-      const bd = delayDur.unit === 'bd' || ctx.useBusinessDays;
-      task.computedStart = addDuration(task.computedStart, delayDur, bd, ctx.weekStart);
+      const bd = blockDur.unit === 'bd' || ctx.useBusinessDays;
+      task.computedStart = addDuration(task.computedStart, blockDur, bd, ctx.weekStart);
       if (task.duration) {
         const durBd = task.duration.unit === 'bd' || ctx.useBusinessDays;
         task.computedEnd = addDuration(task.computedStart, task.duration, durBd, ctx.weekStart);
@@ -177,20 +177,21 @@ function scheduleTask(task: Task, sequentialAnchor: Date, ctx: ScheduleCtx): voi
     }
   }
 
-  // +blocked:Xw — same time-shift as +delayed but semantic: externally blocked for X time
-  const blockedMod = task.modifiers.find(m => m.startsWith('blocked:'));
-  if (blockedMod) {
-    const blockDur = parseModifierDuration(blockedMod);
-    if (blockDur) {
-      task.plannedStart = task.plannedStart ?? new Date(task.computedStart);
-      task.plannedEnd   = task.plannedEnd ?? (task.computedEnd ? new Date(task.computedEnd) : undefined);
-      const bd = blockDur.unit === 'bd' || ctx.useBusinessDays;
-      task.computedStart = addDuration(task.computedStart, blockDur, bd, ctx.weekStart);
-      if (task.duration) {
-        const durBd = task.duration.unit === 'bd' || ctx.useBusinessDays;
-        task.computedEnd = addDuration(task.computedStart, task.duration, durBd, ctx.weekStart);
-      } else {
-        task.computedEnd = new Date(task.computedStart);
+  // delayed:Xd — task running late: extends end forward, overrun appears AFTER actual bar
+  const delayedMod = task.modifiers.find(m => m.startsWith('delayed:'));
+  if (delayedMod) {
+    const delayDur = parseModifierDuration(delayedMod);
+    if (delayDur) {
+      // Record where the delay extension starts (= current computedEnd before extending)
+      task.delayStart = task.computedEnd ? new Date(task.computedEnd) : undefined;
+      // If no blocked modifier, also record original position as plannedStart/plannedEnd
+      if (!task.plannedStart) {
+        task.plannedStart = new Date(task.computedStart);
+        task.plannedEnd   = task.computedEnd ? new Date(task.computedEnd) : undefined;
+      }
+      const bd = delayDur.unit === 'bd' || ctx.useBusinessDays;
+      if (task.computedEnd) {
+        task.computedEnd = addDuration(task.computedEnd, delayDur, bd, ctx.weekStart);
       }
     }
   }

@@ -49,8 +49,9 @@ export interface Task {
   subtasks: Task[];
   computedStart?: Date;
   computedEnd?: Date;
-  plannedStart?: Date;   // original undelayed start when +delayed:X is used
-  plannedEnd?: Date;     // original undelayed end when +delayed:X is used
+  plannedStart?: Date;   // original unshifted start when blocked: is used
+  plannedEnd?: Date;     // original unshifted end (before any modification)
+  delayStart?: Date;     // where the delayed extension begins (planned end after blocking, before delay)
   line: number;
 }
 
