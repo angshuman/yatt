@@ -425,6 +425,15 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .ctrl-kanban { display: flex; gap: 10px; padding: 12px; overflow-x: auto; align-items: flex-start; }
 .k-col { flex: 0 0 200px; background: var(--bg); border-radius: 6px;
   border: 1px solid var(--border); display: flex; flex-direction: column; max-height: 360px; }
+.k-col.empty { flex: 0 0 32px; cursor: default; }
+.k-col.empty .k-col-header { display: none; }
+.k-col.empty .k-cards { display: none; }
+.k-col-empty-label { display: none; }
+.k-col.empty .k-col-empty-label { display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; gap: 8px; padding: 10px 0; }
+.k-col-empty-line { width: 3px; border-radius: 2px; flex-shrink: 0; min-height: 24px; flex: 1; max-height: 60px; }
+.k-col-empty-title { writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);
+  font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .k-col-header { padding: 8px 12px; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
 .k-col-line { width: 3px; height: 12px; border-radius: 2px; flex-shrink: 0; }
@@ -1028,12 +1037,21 @@ function buildKanbanHtml(tasks) {
     var cards = byStatus[status] || [];
     var color = STATUS_COLOR[status] || '#7d8590';
     var label = STATUS_LABEL[status] || status;
-    html += '<div class="k-col" data-status="' + esc(status) + '">';
-    html += '<div class="k-col-header">';
-    html += '<span class="k-col-line" style="background:' + color + '"></span>';
-    html += '<span class="k-col-title">' + esc(label) + '</span>';
-    html += '<span class="k-col-count">' + cards.length + '</span>';
-    html += '</div><div class="k-cards">';
+    var isEmpty = cards.length === 0;
+    html += '<div class="k-col' + (isEmpty ? ' empty' : '') + '" data-status="' + esc(status) + '">';
+    if (isEmpty) {
+      html += '<div class="k-col-empty-label">';
+      html += '<span class="k-col-empty-line" style="background:' + color + '"></span>';
+      html += '<span class="k-col-empty-title" style="color:' + color + '">' + esc(label) + '</span>';
+      html += '</div>';
+    } else {
+      html += '<div class="k-col-header">';
+      html += '<span class="k-col-line" style="background:' + color + '"></span>';
+      html += '<span class="k-col-title">' + esc(label) + '</span>';
+      html += '<span class="k-col-count">' + cards.length + '</span>';
+      html += '</div>';
+    }
+    html += '<div class="k-cards">';
     cards.forEach(function(t) {
       var indent = t.depth > 0 ? 'padding-left:' + (8 + t.depth * 10) + 'px;' : '';
       var lineAttr = t.line ? ' data-line="' + t.line + '"' : '';
