@@ -98,11 +98,20 @@ interface TaskInfo {
   name: string;
   status: string;
   assignees: string[];
+  tags: string[];
   priority?: string;
   progress?: number;
   start?: string;
   end?: string;
+  duration?: string;
+  startDate?: string;
+  dueDate?: string;
+  id?: string;
+  after?: string;
+  modifiers?: string[];
+  line: number;
   depth: number;
+  dotPrefix: string;
 }
 
 // ── Task extractor (reused by renderYattBlock) ────────────────────────────────
@@ -115,9 +124,19 @@ function extractTasksFromItems(items: DocumentItem[]): TaskInfo[] {
   }
 
   function walkTask(t: Task, depth: number) {
-    const info: TaskInfo = { name: t.name, status: t.status, assignees: t.assignees, depth };
+    const dotPrefix = '.'.repeat(depth);
+    const info: TaskInfo = {
+      name: t.name, status: t.status, assignees: t.assignees,
+      tags: t.tags, depth, dotPrefix, line: t.line,
+    };
     if (t.priority) info.priority = t.priority;
     if (t.progress !== undefined) info.progress = t.progress;
+    if (t.id) info.id = t.id;
+    if (t.duration) info.duration = `${t.duration.value}${t.duration.unit}`;
+    if (t.startDate) info.startDate = t.startDate;
+    if (t.dueDate) info.dueDate = t.dueDate;
+    if (t.after.length) info.after = t.after.map(d => d.ids.join(d.logic === 'or' ? '|' : ',')).join(',');
+    if (t.modifiers.length) info.modifiers = [...t.modifiers];
     const s = fmt(t.computedStart), e = fmt(t.computedEnd);
     if (s) info.start = s;
     if (e) info.end = e;
@@ -169,6 +188,47 @@ function renderFile(absPath: string): RenderedBlock[] {
     if (b.kind === 'heading') return { kind: 'heading' as const, level: b.level, text: b.text };
     return { kind: 'prose' as const, text: b.text };
   });
+}
+
+// ── Block source patcher ──────────────────────────────────────────────────────
+
+function replaceYattBlock(fileSource: string, blockIdx: number, newSource: string): string {
+  const lines = fileSource.split(/\r?\n/);
+  let idx = 0;
+  let scanState: 'normal' | 'yatt' | 'fence' = 'normal';
+  let fenceClose = '```';
+  let contentStart = -1;
+  let contentEnd = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    const ln = lines[i];
+    if (scanState === 'yatt') {
+      if (ln.trimEnd() === fenceClose) {
+        if (idx === blockIdx) { contentEnd = i; break; }
+        idx++; scanState = 'normal';
+      }
+      continue;
+    }
+    if (scanState === 'fence') {
+      if (ln.trimEnd() === fenceClose) scanState = 'normal';
+      continue;
+    }
+    if (/^```yatt\s*$/.test(ln)) {
+      if (idx === blockIdx) contentStart = i + 1;
+      fenceClose = '```'; scanState = 'yatt'; continue;
+    }
+    if (/^~~~yatt\s*$/.test(ln)) {
+      if (idx === blockIdx) contentStart = i + 1;
+      fenceClose = '~~~'; scanState = 'yatt'; continue;
+    }
+    if (/^```/.test(ln)) { fenceClose = '```'; scanState = 'fence'; continue; }
+    if (/^~~~/.test(ln)) { fenceClose = '~~~'; scanState = 'fence'; continue; }
+  }
+
+  if (contentStart < 0 || contentEnd < 0) throw new Error(`YATT block ${blockIdx} not found`);
+  const newLines = newSource.split(/\r?\n/);
+  lines.splice(contentStart, contentEnd - contentStart, ...newLines);
+  return lines.join('\n');
 }
 
 // ── SSE manager ───────────────────────────────────────────────────────────────
@@ -311,7 +371,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .prose tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
 
 /* ── yatt control (embedded per-block) ── */
-.yatt-ctrl { margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.yatt-ctrl { margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; overflow: auto; }
 .yatt-ctrl-bar { display: flex; gap: 2px; padding: 4px 8px;
   border-bottom: 1px solid var(--border); background: var(--panel2); }
 .yatt-ctrl-tab { background: none; border: none; cursor: pointer; padding: 3px 10px;
@@ -375,10 +435,54 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
   padding: 24px 32px; font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
   font-size: 13px; line-height: 1.65; tab-size: 2; }
 
-/* ── yatt source panel ── */
+/* ── yatt source panel (read-only) ── */
 .yatt-src { padding: 16px; font-family: ui-monospace, 'Cascadia Code', monospace;
   font-size: 12px; line-height: 1.6; overflow-x: auto;
   background: var(--bg); color: var(--text); white-space: pre; margin: 0; }
+
+/* ── yatt inline block editor ── */
+.yatt-block-editor { display: block; width: 100%; min-height: 160px; padding: 14px 16px;
+  font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 12px; line-height: 1.6; background: var(--bg); color: var(--text);
+  border: none; outline: none; resize: both; tab-size: 2; }
+.yatt-block-bar { display: flex; align-items: center; padding: 4px 12px;
+  border-top: 1px solid var(--border); background: var(--panel2); min-height: 26px; }
+.yatt-block-status { font-size: 10px; }
+
+/* ── task edit modal ── */
+#task-edit-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 1000;
+  display: flex; align-items: center; justify-content: center; }
+#task-edit-overlay.hidden { display: none; }
+#task-edit-modal { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 22px 24px; width: 500px; max-height: 88vh; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.te-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+.te-row { display: grid; gap: 10px; margin-bottom: 10px; }
+.te-row.cols-2 { grid-template-columns: 1fr 1fr; }
+.te-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.te-field label { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
+.te-field input, .te-field select { width: 100%; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 5px; color: var(--text); padding: 5px 8px; font-size: 12px; font-family: inherit;
+  outline: none; transition: border-color 0.1s; }
+.te-field input:focus, .te-field select:focus { border-color: var(--accent); }
+.te-field select option { background: var(--panel); }
+.te-actions { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
+.te-save-msg { font-size: 11px; color: var(--muted); flex: 1; }
+.te-btn { padding: 5px 16px; border-radius: 5px; border: none; cursor: pointer;
+  font-size: 12px; font-family: inherit; font-weight: 500; transition: opacity 0.1s; }
+.te-btn-primary { background: var(--accent); color: #fff; }
+.te-btn-primary:hover { opacity: 0.85; }
+.te-btn-ghost { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); }
+.te-btn-ghost:hover { background: rgba(255,255,255,0.1); }
+
+/* ── kanban drag ── */
+.k-col.drag-over .k-cards { background: rgba(56,139,253,0.08); border-radius: 0 0 6px 6px; }
+.k-card.dragging { opacity: 0.35; }
+.k-card[data-line] { cursor: pointer; }
+.k-card[data-line]:hover { border-color: var(--accent-hi); }
+.ptask-row[data-line] { cursor: pointer; }
+.ptask-row[data-line]:hover { background: rgba(56,139,253,0.06); }
 
 /* ── shared atoms ── */
 .sdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
@@ -393,7 +497,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 const JS = `
 var state = {
   files: [], currentFile: null, view: 'view',
-  blocks: null, source: null, saveStatus: '', saveTimer: null
+  blocks: null, source: null, saveStatus: '', saveTimer: null,
+  editTask: null, editCtrlId: null, editBidx: null
 };
 
 var STATUS_COLOR = {
@@ -407,6 +512,219 @@ var STATUS_LABEL = {
   'review':'Review','paused':'Paused'
 };
 var KANBAN_COLS = ['active','new','review','blocked','at-risk','paused','deferred','done','cancelled'];
+
+var STATUS_SIGIL = {
+  'new':' ','active':'~','done':'x','blocked':'!',
+  'at-risk':'?','deferred':'>','cancelled':'_','review':'=','paused':'o'
+};
+
+// ── Task serializer ───────────────────────────────────────────────────────
+function serializeTaskLine(t) {
+  var sig = STATUS_SIGIL[t.status] || ' ';
+  var dp = t.dotPrefix || '';
+  var head = (dp ? dp + ' ' : '') + '[' + sig + '] ' + (t.name || '');
+  var fields = [];
+  if (t.id) fields.push('id:' + t.id);
+  if (t.duration) fields.push(t.duration);
+  if (t.assignees && t.assignees.length) fields.push(t.assignees.map(function(a){return '@'+a;}).join(' '));
+  if (t.tags && t.tags.length) fields.push(t.tags.map(function(a){return '#'+a;}).join(' '));
+  if (t.priority && t.priority !== 'normal') fields.push('!' + t.priority);
+  if (t.progress != null && t.progress !== '') fields.push('%' + t.progress);
+  if (t.startDate) fields.push('>' + t.startDate);
+  if (t.dueDate) fields.push('<' + t.dueDate);
+  if (t.after) fields.push('after:' + t.after);
+  if (t.modifiers && t.modifiers.length) t.modifiers.forEach(function(m){ fields.push('+'+m); });
+  return head + (fields.length ? ' | ' + fields.join(' | ') : '');
+}
+
+function patchBlockSource(source, lineNum, newLine) {
+  var lines = source.split('\\n');
+  if (lineNum >= 1 && lineNum <= lines.length) lines[lineNum - 1] = newLine;
+  return lines.join('\\n');
+}
+
+function saveBlock(bidx, newSource, onDone) {
+  if (!state.currentFile) return;
+  // Update local cache so in-flight UI doesn't see stale source
+  var yblocks = (state.blocks || []).filter(function(b){ return b.kind === 'yatt'; });
+  if (yblocks[bidx]) yblocks[bidx].source = newSource;
+  fetch('/api/save-block?p=' + encodeURIComponent(state.currentFile) + '&idx=' + bidx, {
+    method: 'POST', headers: {'Content-Type':'text/plain;charset=utf-8'}, body: newSource
+  }).then(function(r) {
+    if (r.ok) { if (onDone) onDone(null); }
+    else r.json().then(function(d){ if (onDone) onDone(d.error || 'Error'); });
+  }).catch(function(e){ if (onDone) onDone(e.message); });
+}
+
+// ── Task edit popup ───────────────────────────────────────────────────────
+function openTaskEdit(task) {
+  if (!task) return;
+  state.editTask = task;
+  document.getElementById('te-name').value = task.name || '';
+  document.getElementById('te-status').value = task.status || 'new';
+  document.getElementById('te-assignees').value = (task.assignees||[]).map(function(a){return '@'+a;}).join(' ');
+  document.getElementById('te-tags').value = (task.tags||[]).map(function(a){return '#'+a;}).join(' ');
+  document.getElementById('te-priority').value = task.priority || 'normal';
+  document.getElementById('te-progress').value = task.progress != null ? task.progress : '';
+  document.getElementById('te-duration').value = task.duration || '';
+  document.getElementById('te-startdate').value = task.startDate || '';
+  document.getElementById('te-duedate').value = task.dueDate || '';
+  document.getElementById('te-id').value = task.id || '';
+  document.getElementById('te-after').value = task.after || '';
+  document.getElementById('te-save-msg').textContent = '';
+  document.getElementById('task-edit-overlay').classList.remove('hidden');
+  setTimeout(function(){ document.getElementById('te-name').focus(); }, 50);
+}
+
+function closeTaskEdit() {
+  document.getElementById('task-edit-overlay').classList.add('hidden');
+  state.editTask = null;
+}
+
+function saveTaskEdit() {
+  var task = state.editTask;
+  if (!task) return;
+  var updated = {};
+  for (var k in task) updated[k] = task[k];
+  updated.name = document.getElementById('te-name').value.trim();
+  updated.status = document.getElementById('te-status').value;
+  var ar = document.getElementById('te-assignees').value.trim();
+  updated.assignees = ar ? ar.split(/\\s+/).map(function(a){return a.replace(/^@/,'');}).filter(Boolean) : [];
+  var tr = document.getElementById('te-tags').value.trim();
+  updated.tags = tr ? tr.split(/\\s+/).map(function(a){return a.replace(/^#/,'');}).filter(Boolean) : [];
+  updated.priority = document.getElementById('te-priority').value || 'normal';
+  var pg = document.getElementById('te-progress').value;
+  updated.progress = pg !== '' ? parseInt(pg, 10) : null;
+  updated.duration = document.getElementById('te-duration').value.trim() || null;
+  updated.startDate = document.getElementById('te-startdate').value.trim() || null;
+  updated.dueDate = document.getElementById('te-duedate').value.trim() || null;
+  updated.id = document.getElementById('te-id').value.trim() || null;
+  updated.after = document.getElementById('te-after').value.trim() || null;
+
+  var bidx = state.editTask.bidx;
+  var yblocks = (state.blocks || []).filter(function(b){ return b.kind === 'yatt'; });
+  var block = yblocks[bidx];
+  if (!block || !block.source) {
+    document.getElementById('te-save-msg').style.color = 'var(--red)';
+    document.getElementById('te-save-msg').textContent = 'Error: block source not found';
+    return;
+  }
+  var newLine = serializeTaskLine(updated);
+  var newSource = patchBlockSource(block.source, task.line, newLine);
+  var msgEl = document.getElementById('te-save-msg');
+  msgEl.style.color = 'var(--muted)'; msgEl.textContent = 'Saving...';
+  saveBlock(bidx, newSource, function(err) {
+    if (err) { msgEl.style.color='var(--red)'; msgEl.textContent='Error: '+err; }
+    else { closeTaskEdit(); }
+  });
+}
+
+// ── Yatt ctrl init (called after each block renders) ──────────────────────
+function findTask(bidx, line) {
+  var yblocks = (state.blocks || []).filter(function(b){ return b.kind === 'yatt'; });
+  var block = yblocks[bidx];
+  if (!block) return null;
+  return (block.tasks || []).find(function(t){ return t.line === line; }) || null;
+}
+
+function initYattCtrl(ctrlId, bidx) {
+  var ctrl = document.getElementById(ctrlId);
+  if (!ctrl) return;
+  ctrl.setAttribute('data-bidx', bidx);
+
+  // Timeline: click on task bar overlay rect
+  var svgEl = ctrl.querySelector('[data-panel="timeline"] svg');
+  if (svgEl) {
+    svgEl.addEventListener('click', function(e) {
+      var el = e.target;
+      while (el && el !== svgEl) {
+        var dl = el.getAttribute ? el.getAttribute('data-line') : null;
+        if (dl) {
+          var task = findTask(bidx, parseInt(dl));
+          if (task) { task.bidx = bidx; openTaskEdit(task); }
+          return;
+        }
+        el = el.parentElement;
+      }
+    });
+  }
+
+  // Kanban: click-to-edit + drag-drop
+  var kbEl = ctrl.querySelector('[data-panel="kanban"] .ctrl-kanban');
+  if (kbEl) initKanban(kbEl, bidx);
+
+  // People: click-to-edit
+  var peEl = ctrl.querySelector('[data-panel="people"]');
+  if (peEl) {
+    peEl.querySelectorAll('.ptask-row[data-line]').forEach(function(row) {
+      row.addEventListener('click', function() {
+        var task = findTask(bidx, parseInt(row.getAttribute('data-line')));
+        if (task) { task.bidx = bidx; openTaskEdit(task); }
+      });
+    });
+  }
+
+  // Markdown tab: auto-save textarea
+  var mdPanel = ctrl.querySelector('[data-panel="markdown"]');
+  if (mdPanel) {
+    var ta = mdPanel.querySelector('.yatt-block-editor');
+    var statusEl = mdPanel.querySelector('.yatt-block-status');
+    if (ta) {
+      var bsTimer = null;
+      ta.addEventListener('input', function() {
+        if (bsTimer) clearTimeout(bsTimer);
+        if (statusEl) { statusEl.style.color = 'var(--orange)'; statusEl.textContent = 'Unsaved'; }
+        bsTimer = setTimeout(function() {
+          bsTimer = null;
+          saveBlock(bidx, ta.value, function(err) {
+            if (!statusEl) return;
+            statusEl.textContent = err ? 'Error: '+err : 'Saved';
+            statusEl.style.color = err ? 'var(--red)' : 'var(--green)';
+            if (!err) setTimeout(function(){ statusEl.textContent=''; }, 2000);
+          });
+        }, 1200);
+      });
+    }
+  }
+}
+
+function initKanban(kbEl, bidx) {
+  var dragging = null;
+  kbEl.querySelectorAll('.k-card[data-line]').forEach(function(card) {
+    card.setAttribute('draggable', 'true');
+    card.addEventListener('click', function() {
+      if (card.classList.contains('dragging')) return;
+      var task = findTask(bidx, parseInt(card.getAttribute('data-line')));
+      if (task) { task.bidx = bidx; openTaskEdit(task); }
+    });
+    card.addEventListener('dragstart', function(e) {
+      dragging = card; card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.getAttribute('data-line'));
+    });
+    card.addEventListener('dragend', function() {
+      card.classList.remove('dragging'); dragging = null;
+    });
+  });
+  kbEl.querySelectorAll('.k-col[data-status]').forEach(function(col) {
+    var newStatus = col.getAttribute('data-status');
+    col.addEventListener('dragover', function(e) { e.preventDefault(); col.classList.add('drag-over'); });
+    col.addEventListener('dragleave', function() { col.classList.remove('drag-over'); });
+    col.addEventListener('drop', function(e) {
+      e.preventDefault(); col.classList.remove('drag-over');
+      var tline = parseInt(e.dataTransfer.getData('text/plain') || '0');
+      var task = findTask(bidx, tline);
+      if (!task || task.status === newStatus) return;
+      var yblocks = (state.blocks||[]).filter(function(b){return b.kind==='yatt';});
+      var block = yblocks[bidx];
+      if (!block||!block.source) return;
+      var updated = {}; for (var k in task) updated[k]=task[k];
+      updated.status = newStatus;
+      var newSource = patchBlockSource(block.source, task.line, serializeTaskLine(updated));
+      saveBlock(bidx, newSource, null);
+    });
+  });
+}
 
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -515,7 +833,7 @@ function buildKanbanHtml(tasks, compact) {
     if (compact && !cards.length) return;
     var color = STATUS_COLOR[status] || '#7d8590';
     var label = STATUS_LABEL[status] || status;
-    html += '<div class="k-col">';
+    html += '<div class="k-col" data-status="' + esc(status) + '">';
     html += '<div class="k-col-header">';
     html += '<span class="k-col-line" style="background:' + color + '"></span>';
     html += '<span class="k-col-title">' + esc(label) + '</span>';
@@ -523,7 +841,8 @@ function buildKanbanHtml(tasks, compact) {
     html += '</div><div class="k-cards">';
     cards.forEach(function(t) {
       var indent = t.depth > 0 ? 'padding-left:' + (8 + t.depth * 10) + 'px;' : '';
-      html += '<div class="k-card" style="' + indent + '">';
+      var lineAttr = t.line ? ' data-line="' + t.line + '"' : '';
+      html += '<div class="k-card" style="' + indent + '"' + lineAttr + '>';
       html += '<div class="k-card-name">' + esc(t.name) + '</div>';
       html += '<div class="k-card-meta">';
       if (t.assignees && t.assignees.length) {
@@ -567,7 +886,8 @@ function buildPeopleHtml(tasks) {
     html += '<div><div class="person-name">' + esc(isU ? 'Unassigned' : '@' + name) + '</div>';
     html += '<div class="person-count">' + list.length + ' task' + (list.length===1?'':'s') + '</div></div></div>';
     list.forEach(function(t) {
-      html += '<div class="ptask-row">' + sdot(t.status);
+      var lineAttr = t.line ? ' data-line="' + t.line + '"' : '';
+      html += '<div class="ptask-row"' + lineAttr + '>' + sdot(t.status);
       html += '<span class="ptask-name">' + esc(t.name) + '</span>';
       if (t.priority && t.priority !== 'normal')
         html += '<span class="ptask-priority" data-p="' + esc(t.priority) + '">' + esc(t.priority) + '</span>';
@@ -579,7 +899,7 @@ function buildPeopleHtml(tasks) {
   return html;
 }
 
-function buildYattCtrlHtml(block, ctrlId) {
+function buildYattCtrlHtml(block, ctrlId, bidx) {
   var errHtml = block.errors && block.errors.length
     ? '<div class="yatt-errors">' + block.errors.map(esc).join('<br>') + '</div>' : '';
   var tl = '<div class="yatt-ctrl-panel active" data-panel="timeline">' + (block.html || '') + '</div>';
@@ -587,14 +907,16 @@ function buildYattCtrlHtml(block, ctrlId) {
     buildKanbanHtml(block.tasks || [], true) + '</div></div>';
   var pe = '<div class="yatt-ctrl-panel" data-panel="people"><div class="ctrl-people">' +
     buildPeopleHtml(block.tasks || []) + '</div></div>';
-  var md = '<div class="yatt-ctrl-panel" data-panel="markdown"><pre class="yatt-src"><code>' +
-    esc(block.source || '') + '</code></pre></div>';
+  var md = '<div class="yatt-ctrl-panel" data-panel="markdown">' +
+    '<textarea class="yatt-block-editor" spellcheck="false">' + esc(block.source || '') + '</textarea>' +
+    '<div class="yatt-block-bar"><span class="yatt-block-status"></span></div>' +
+    '</div>';
   var tabs =
     '<button class="yatt-ctrl-tab active" data-panel="timeline" onclick="yattCtrlSetView(\\'' + ctrlId + '\\',\\'timeline\\')">Timeline</button>' +
     '<button class="yatt-ctrl-tab" data-panel="kanban" onclick="yattCtrlSetView(\\'' + ctrlId + '\\',\\'kanban\\')">Kanban</button>' +
     '<button class="yatt-ctrl-tab" data-panel="people" onclick="yattCtrlSetView(\\'' + ctrlId + '\\',\\'people\\')">People</button>' +
-    '<button class="yatt-ctrl-tab" data-panel="markdown" onclick="yattCtrlSetView(\\'' + ctrlId + '\\',\\'markdown\\')">Markdown</button>';
-  return '<div class="yatt-ctrl" id="' + ctrlId + '">' +
+    '<button class="yatt-ctrl-tab" data-panel="markdown" onclick="yattCtrlSetView(\\'' + ctrlId + '\\',\\'markdown\\')">Edit</button>';
+  return '<div class="yatt-ctrl" id="' + ctrlId + '" data-bidx="' + bidx + '">' +
     errHtml +
     '<div class="yatt-ctrl-bar">' + tabs + '</div>' +
     '<div class="yatt-ctrl-body">' + tl + kb + pe + md + '</div>' +
@@ -618,17 +940,20 @@ function buildDocument(blocks, container) {
   if (!blocks || !blocks.length) {
     container.innerHTML = '<div class="loading">No content.</div>'; return;
   }
-  var html = '', ctrlIdx = 0;
+  var html = '', ctrlIdx = 0, ctrlList = [];
   blocks.forEach(function(b) {
     if (b.kind === 'heading') {
       html += '<div class="block-h' + b.level + '">' + inlineMd(b.text) + '</div>';
     } else if (b.kind === 'prose') {
       html += '<div class="prose">' + simpleMarkdown(b.text) + '</div>';
     } else if (b.kind === 'yatt') {
-      html += buildYattCtrlHtml(b, 'yatt-' + ctrlIdx++);
+      var bidx = ctrlIdx++;
+      html += buildYattCtrlHtml(b, 'yatt-' + bidx, bidx);
+      ctrlList.push(bidx);
     }
   });
   container.innerHTML = html;
+  ctrlList.forEach(function(bidx) { initYattCtrl('yatt-' + bidx, bidx); });
 }
 
 // ── Markdown/edit view ────────────────────────────────────────────────────────
@@ -799,6 +1124,25 @@ window.addEventListener('DOMContentLoaded', function() {
     if (el) el.hidden = (n !== initialView);
   });
 
+  // Task edit overlay: close on backdrop click or Escape
+  var overlay = document.getElementById('task-edit-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) closeTaskEdit();
+    });
+  }
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeTaskEdit();
+  });
+
+  // Popup form: submit on Enter in inputs (not textarea)
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && state.editTask) {
+      var tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'select') { e.preventDefault(); saveTaskEdit(); }
+    }
+  });
+
   loadFileList().then(function(files) {
     if (initial && files.includes(initial)) loadFile(initial);
     else if (files.length > 0) navigateTo(files[0]);
@@ -843,6 +1187,57 @@ function buildShellHtml(rootDir: string): string {
       <div id="view-view" class="view-panel"><div id="doc-content"></div></div>
       <div id="view-markdown" class="view-panel" hidden><textarea id="editor" spellcheck="false"></textarea></div>
     </main>
+  </div>
+</div>
+
+<div id="task-edit-overlay" class="hidden">
+  <div id="task-edit-modal">
+    <div class="te-title">Edit Task</div>
+    <div class="te-row">
+      <div class="te-field"><label>Name</label><input type="text" id="te-name" placeholder="Task name"></div>
+    </div>
+    <div class="te-row cols-2">
+      <div class="te-field"><label>Status</label>
+        <select id="te-status">
+          <option value="new">New</option>
+          <option value="active">Active</option>
+          <option value="review">Review</option>
+          <option value="blocked">Blocked</option>
+          <option value="at-risk">At Risk</option>
+          <option value="paused">Paused</option>
+          <option value="deferred">Deferred</option>
+          <option value="done">Done</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="te-field"><label>Priority</label>
+        <select id="te-priority">
+          <option value="low">Low</option>
+          <option value="normal">Normal</option>
+          <option value="high">High</option>
+          <option value="critical">Critical</option>
+        </select>
+      </div>
+    </div>
+    <div class="te-row cols-2">
+      <div class="te-field"><label>Assignees (space-separated)</label><input type="text" id="te-assignees" placeholder="@alice @bob"></div>
+      <div class="te-field"><label>Tags (space-separated)</label><input type="text" id="te-tags" placeholder="#backend #api"></div>
+    </div>
+    <div class="te-row cols-3">
+      <div class="te-field"><label>Duration</label><input type="text" id="te-duration" placeholder="5d, 2bd, 1w"></div>
+      <div class="te-field"><label>Start Date</label><input type="text" id="te-startdate" placeholder="YYYY-MM-DD"></div>
+      <div class="te-field"><label>Due Date</label><input type="text" id="te-duedate" placeholder="YYYY-MM-DD"></div>
+    </div>
+    <div class="te-row cols-3">
+      <div class="te-field"><label>Progress (%)</label><input type="number" id="te-progress" min="0" max="100" placeholder="0"></div>
+      <div class="te-field"><label>ID</label><input type="text" id="te-id" placeholder="task-slug"></div>
+      <div class="te-field"><label>After (deps)</label><input type="text" id="te-after" placeholder="id1,id2"></div>
+    </div>
+    <div class="te-actions">
+      <span class="te-save-msg" id="te-save-msg"></span>
+      <button class="te-btn te-btn-ghost" onclick="closeTaskEdit()">Cancel</button>
+      <button class="te-btn te-btn-primary" onclick="saveTaskEdit()">Save</button>
+    </div>
   </div>
 </div>
 <script>var ROOT_FOLDER = ${JSON.stringify(rootDir)};
@@ -908,6 +1303,37 @@ function createServer(rootDir: string, port: number, sse: SseManager): http.Serv
       req.on('end', () => {
         try {
           fs.writeFileSync(absPath, Buffer.concat(chunks).toString('utf8'), 'utf8');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end('"ok"');
+          sse.broadcast('reload');
+        } catch (e: any) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: e.message }));
+        }
+      });
+      req.on('error', (e: any) => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      });
+      return;
+    }
+
+    if (pathname === '/api/save-block' && req.method === 'POST') {
+      const absPath = guardPath(rootDir, parsed.searchParams.get('p'));
+      const blockIdx = parseInt(parsed.searchParams.get('idx') ?? '-1', 10);
+      if (!absPath || blockIdx < 0) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Bad request' }));
+        return;
+      }
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk: Buffer) => chunks.push(chunk));
+      req.on('end', () => {
+        try {
+          const newBlockSource = Buffer.concat(chunks).toString('utf8');
+          const fileSource = fs.readFileSync(absPath, 'utf8');
+          const updated = replaceYattBlock(fileSource, blockIdx, newBlockSource);
+          fs.writeFileSync(absPath, updated, 'utf8');
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end('"ok"');
           sse.broadcast('reload');
