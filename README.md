@@ -17,16 +17,17 @@ start: 2026-01-05
 
 parallel: design | after:phase1
 [done]   UX wireframes         | 4d  | @carol  | %100
-[active] Visual design         | 3d  | @carol  | %60  | +delayed:2d
+[=] Visual design | 3d | @carol | %99 | +delayed:2d
 end: design
 
 parallel: engineering | after:phase1
 [done]   API scaffold          | 3d  | @bob              | id:api
-[active] Auth service          | 4d  | @bob    | %45    | after:api
+[!] Auth service | 4d | @bob | %45 | after:api
 [?]      Core features         | 1w  | @alice  | +delayed:1w | after:api
 end: engineering
 
-[new]    Integration & QA      | 5d  | @alice @bob      | after:design,engineering | id:qa
+[!] Integration & QA | id:qa | 5d | @alice @bob | after:design,engineering
+// hello
 [!]      Performance testing   | 2d  | @bob             | after:qa
 >> v2.0 Release                | after:qa               | +deadline
 ~~~
@@ -35,7 +36,8 @@ end: engineering
 - `[done]` `[active]` `[?]` `[!]` `[new]` — task statuses with distinct colours
 - `parallel: name` — two workstreams running concurrently from the same anchor
 - `after:phase1` / `after:design,engineering` — explicit AND dependencies
-- `+delayed:2d` / `+delayed:1w` — shifts actual bar forward; ghost bar shows original planned position
+- `+delayed:2d` / `+delayed:1w` — shifts actual bar forward; **orange** ghost bar shows original planned position
+- `+blocked:X` — same time-shift but semantically external; **red** ghost bar
 - `after:design,engineering` — `design` and `engineering` are the parallel block names (their implicit IDs)
 - `>> milestone` — diamond markers; `+deadline` draws a full-height hairline
 - `%60` progress fill inside bars · `@assignee` initials on bars
@@ -83,6 +85,9 @@ start: 2026-03-01
 | OR dependency | `after:a\|b` | starts after either completes |
 | Business days | `5bd` or header `schedule: business-days` | skips Sat/Sun |
 | Subtasks | leading `.` or `..` | sequential within parent |
+| Task description | `//` line(s) immediately after a task | attached as tooltip/annotation; blank line breaks attachment |
+| Time-shift (slip) | `+delayed:3d` | shifts bar forward; orange ghost shows original |
+| Time-shift (external block) | `+blocked:2w` | same shift; red ghost shows original |
 
 ## Status symbols
 
@@ -119,9 +124,15 @@ Both forms are accepted:
 
 | File | Description |
 |---|---|
-| [software-release.yatt](./examples/software-release.yatt) | Multi-team platform v3.0 release — all features |
+| [01-hello-world.md](./examples/01-hello-world.md) | Simplest possible chart — sequential tasks with descriptions |
+| [02-team-sprint.md](./examples/02-team-sprint.md) | Sprint planning with statuses, assignees, priorities, and dependencies |
+| [03-product-launch.md](./examples/03-product-launch.md) | Phased launch with milestones, subtasks, and cross-phase dependencies |
+| [04-parallel-workstreams.md](./examples/04-parallel-workstreams.md) | Multiple independent workstreams converging on shared milestones |
+| [05-enterprise-program.md](./examples/05-enterprise-program.md) | Full-scale program — all features combined |
+| [06-delays-and-blocks.md](./examples/06-delays-and-blocks.md) | `+delayed:X` and `+blocked:X` with ghost bars |
+| [software-release.yatt](./examples/software-release.yatt) | Multi-team platform v3.0 release |
 | [personal-project.yatt](./examples/personal-project.yatt) | Solo dev portfolio redesign |
-| [construction.yatt](./examples/construction.yatt) | Commercial fit-out — `bd` durations, +external, regulatory milestones |
+| [construction.yatt](./examples/construction.yatt) | Commercial fit-out — `bd` durations, `+external`, regulatory milestones |
 
 ## License
 

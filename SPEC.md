@@ -1,342 +1,182 @@
 # YATT Language Specification
 
-**Version:** 0.1.0
-**Status:** Draft
+---
+
+## Syntax Cheatsheet
+
+```
+title: My Project
+start: 2026-04-01
+schedule: business-days
+
+# Section name
+
+[ ] Task name | 3d | @alice | #tag | !high | %40 | id:slug | after:other | <2026-05-01
+// Optional description line (immediately follows the task)
+// More description — shown as tooltip or annotation.
+
+[~] Active task | 2bd | @bob | +delayed:2d
+[x] Done task   | 1w  | @carol | %100
+[!] Blocked     | 4d  | @dave | +blocked:1w
+[=] In review   | 2d
+[?] At risk     | 3d | !high
+[>] Deferred    | 2d
+[_] Cancelled   | 1d
+
+>> Milestone name | >2026-05-15 | +deadline | id:ms
+
+parallel: workstream-name | after:slug
+[ ] Task A | 3d
+[ ] Task B | 2d
+end: workstream-name
+
+[~] Parent task | 5d | id:parent
+.  [x] Sub one  | 2d
+.  [ ] Sub two  | 3d
+.. [ ] Nested   | 1d
+
+*daily  Standup   | 15m | @team
+*weekly Review    | 1h
+```
 
 ---
 
-## Table of Contents
+## Header Block
 
-1. [Design Philosophy](#1-design-philosophy)
-2. [File Format and Header Block](#2-file-format-and-header-block)
-3. [Line Classification Rules](#3-line-classification-rules)
-4. [Task Line Anatomy](#4-task-line-anatomy)
-5. [Status Vocabulary](#5-status-vocabulary)
-6. [Field Reference](#6-field-reference)
-7. [Duration Grammar](#7-duration-grammar)
-8. [Date Expressions](#8-date-expressions)
-9. [Sequential Scheduling Model](#9-sequential-scheduling-model)
-10. [Parallel Blocks](#10-parallel-blocks)
-11. [Task IDs and Dependencies](#11-task-ids-and-dependencies)
-12. [Subtask Dot Notation](#12-subtask-dot-notation)
-13. [Milestones](#13-milestones)
-14. [Modifier System](#14-modifier-system)
-15. [Recurring Tasks](#15-recurring-tasks)
-16. [Sections](#16-sections)
-17. [Comments](#17-comments)
-18. [Formal Grammar](#18-formal-grammar)
-19. [Rendering Model](#19-rendering-model)
-20. [Version History](#20-version-history)
-
----
-
-## 1. Design Philosophy
-
-YATT is built on five principles that guide every design decision.
-
-### 1.1 Plain Text First
-
-A YATT file must be useful without any tooling. It should read naturally as a plain-text document — in a terminal, a code review, an email. Rendering to a Gantt chart is an enhancement, not a requirement for comprehension.
-
-### 1.2 No Whitespace Syntax
-
-Indentation is never load-bearing. Two spaces and four spaces have the same meaning. The only exception is the subtask dot notation, which uses leading dots (`.`) rather than spaces. This makes YATT safe to edit in any text editor without fear of breaking structure through reformatting.
-
-### 1.3 Sigil-Driven
-
-Every structural element begins with an unambiguous sigil: `[` for tasks, `>>` for milestones, `#` for sections, `//` for comments, `.` or `..` for subtasks, `*` for recurrence, `parallel:` and `end:` for block delimiters. Sigils eliminate parsing ambiguity without requiring indentation or keyword position sensitivity.
-
-### 1.4 Sequential by Default
-
-Tasks in a document are scheduled sequentially — each task starts when the previous one ends — unless explicitly overridden. This matches the mental model of most project plans: a list of things to do, one after another. Parallelism is opt-in and explicit via `parallel:` blocks or `after:` cross-references.
-
-### 1.5 Domain-Agnostic
-
-YATT has no knowledge of software sprints, construction phases, or any other domain. It understands tasks, durations, assignees, and dependencies. All domain meaning is carried by names, tags, and the user's choice of structure. The same parser handles a software release and a kitchen renovation.
-
----
-
-## 2. File Format and Header Block
-
-### 2.1 Encoding
-
-YATT files use UTF-8 encoding. The canonical file extension is `.yatt`. YATT content embedded in Markdown uses a fenced code block with the `yatt` language identifier.
-
-### 2.2 Header Block
-
-The header block consists of `key: value` lines at the top of the file, before any task lines. Header parsing ends at the first line that does not match `key: value` syntax (ignoring blank lines and comment lines).
+`key: value` lines at the top of the file, before any task lines. All fields are optional.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `title` | string | `"Untitled"` | Display name of the project or plan |
-| `start` | ISO date `YYYY-MM-DD` | today | Absolute start date for scheduling |
-| `end` | ISO date `YYYY-MM-DD` | derived | Optional hard end date; triggers overrun warnings |
-| `schedule` | `calendar-days` \| `business-days` | `calendar-days` | Default duration unit semantics |
-| `timezone` | IANA timezone string | `UTC` | Timezone for date calculations |
-| `locale` | BCP 47 language tag | `en` | Locale for date formatting in rendered output |
-| `owner` | string | — | Default assignee for tasks without `@` field |
-| `version` | string | — | Free-form version label for the plan |
+| `title` | string | `"Untitled"` | Display name |
+| `start` | `YYYY-MM-DD` | today | Absolute schedule start date |
+| `end` | `YYYY-MM-DD` | derived | Optional hard end date |
+| `schedule` | `calendar-days` \| `business-days` | `calendar-days` | Default duration semantics |
+| `timezone` | IANA timezone | `UTC` | For date calculations |
+| `locale` | BCP 47 tag | `en` | Date formatting in output |
+| `owner` | string | — | Default assignee for tasks without `@` |
+| `week-start` | `mon` \| `sun` | `mon` | First day of week |
+| `version` | string | — | Free-form version label |
 
-**Example:**
-
-```
-title: Platform Migration Q1
-start: 2026-01-12
-end: 2026-03-31
-schedule: business-days
-timezone: America/New_York
-locale: en-US
-owner: @team-lead
-version: 1.3
-```
-
-All header fields are optional. A file with no header is valid; scheduling begins from today using calendar days.
+Header parsing ends at the first non-header, non-blank, non-comment line.
 
 ---
 
-## 3. Line Classification Rules
+## Line Classification
 
-The parser classifies each non-empty line by testing the following conditions in order. The first match wins.
+Lines are classified in this order (first match wins):
 
-| Priority | Pattern | Classification |
-|---|---|---|
-| 1 | Starts with `//` | Comment — ignored |
-| 2 | Matches `key: value` and is in the header zone | Header field |
-| 3 | Starts with `#` (followed by space or end of line) | Section header |
-| 4 | Starts with `>>` | Milestone |
-| 5 | Starts with `parallel:` | Parallel block open |
-| 6 | Starts with `end:` | Parallel block close |
-| 7 | Starts with `*` | Recurring task |
-| 8 | Starts with one or more `.` followed by a space and `[` | Subtask |
-| 9 | Starts with `[` | Task |
-| 10 | Blank line | Ignored |
-| 11 | Any other content | Parse warning; line skipped |
-
-The "header zone" ends as soon as the parser encounters any non-header-field, non-blank, non-comment line.
+| Pattern | Classification |
+|---|---|
+| Starts with `//` | Comment / task description |
+| `key: value` in header zone | Header field |
+| Starts with `#` + space | Section header |
+| Starts with `>>` | Milestone |
+| Starts with `parallel:` | Parallel block open |
+| Starts with `end:` | Parallel block close |
+| Starts with `*` | Recurring task |
+| Starts with `.`+ space + `[` | Subtask |
+| Starts with `[` | Task |
+| Blank line | Ignored |
+| Anything else | Parse warning; line skipped |
 
 ---
 
-## 4. Task Line Anatomy
-
-A task line has two parts: a **status+name prefix** and an optional **pipe-field list**.
+## Task Syntax
 
 ```
 [status] Task name | field | field | field ...
+// Optional description line
+// Another description line
 ```
 
-### 4.1 Status+Name Prefix
+The status token uses either sigil or word form. The task name is everything after `]` up to the first `|`, trimmed. Fields are pipe-separated and order-independent.
 
-```
-[status] Task name
-```
+**Task descriptions:** `//` lines immediately following a task (with no blank line in between) are that task's description. They are displayed as a tooltip or annotation in rendered output. Standalone `//` lines not immediately following a task are ignored by the parser.
 
-- The status token is enclosed in square brackets with no internal spaces around the sigil character (e.g., `[~]` not `[ ~ ]`). Both short sigil form and long word form are valid (see Section 5).
-- The task name is everything after the closing `]` up to the first `|` character (or end of line), trimmed of leading and trailing whitespace.
-- Task names may contain any Unicode character except `|`.
+### Status Vocabulary
 
-### 4.2 Pipe-Field List
-
-After the task name, zero or more fields follow, each preceded by `|`. Field order is not significant. Fields are identified by their leading sigil character or keyword prefix.
-
-```
-[~] Refactor auth module | 5d | @alice | #backend | !high | %40 | id:auth-refactor | after:db-upgrade | +at-risk | >2026-02-01 | <2026-02-28 | $JIRA-991
-```
-
-See Section 6 for the complete field reference.
-
----
-
-## 5. Status Vocabulary
-
-Both sigil form and word form are accepted by the parser. Renderers use word form internally.
-
-| Sigil | Word | Meaning | Lifecycle Notes |
+| Sigil | Word | Colour | Scheduling |
 |---|---|---|---|
-| `[ ]` | `new` | Not started | Default for unbegun work |
-| `[~]` | `active` | In progress | Should have `%progress` |
-| `[x]` | `done` | Completed | Duration is historical; not projected |
-| `[!]` | `blocked` | Blocked | Scheduling continues past blocked tasks unless `+hard-block` modifier present |
-| `[?]` | `at-risk` | At risk | Scheduled normally; visual warning |
-| `[>]` | `deferred` | Deferred/postponed | Excluded from sequential scheduling chain; treated as zero-duration for dependency resolution |
-| `[_]` | `cancelled` | Cancelled | Excluded from scheduling entirely; dependencies skip over cancelled tasks |
-| `[=]` | `review` | In review/awaiting approval | Scheduled normally |
-| `[o]` | `paused` | Paused | Holds its start date; duration continues from resume |
+| `[ ]` | `new` | steel blue | Normal |
+| `[~]` | `active` | blue | Normal |
+| `[x]` | `done` | green | Normal (historical) |
+| `[!]` | `blocked` | red + stripes | Normal (chain continues unless `+hard-block`) |
+| `[?]` | `at-risk` | amber | Normal |
+| `[>]` | `deferred` | purple | Skipped in chain (zero-duration for deps) |
+| `[_]` | `cancelled` | grey + strikethrough | Fully excluded |
+| `[=]` | `review` | violet | Normal |
+| `[o]` | `paused` | slate-dark | Normal |
 
-### 5.1 Scheduling Effects
+`deferred` — the following task starts where the deferred task would have started.  
+`cancelled` — fully excluded; downstream `after:` references resolve to its start date.
 
-- `done`, `active`, `new`, `review`, `at-risk`, `paused`, `blocked` — participate in sequential scheduling chain.
-- `deferred` — skipped in the sequential chain (the next task starts at the same time the deferred task would have started). Deferred tasks are still rendered but greyed out.
-- `cancelled` — fully excluded. Downstream `after:` references to a cancelled task resolve to that task's scheduled start date (not end date), preventing indefinite blocking.
+### Field Reference
 
----
-
-## 6. Field Reference
-
-Fields appear in the pipe-delimited list after the task name. Multiple fields of the same type on one line produce a parse warning; the last value wins.
-
-| Sigil | Name | Type | Example | Notes |
-|---|---|---|---|---|
-| (no sigil, parseable as duration) | duration | duration string | `3d`, `2bd`, `1w` | See Section 7. If absent, defaults to `1d`. |
-| `@` | assignee | string | `@alice`, `@team-alpha` | Multiple allowed: `@alice @bob` (space-separated within the field) or separate `@` fields |
-| `#` | tag | string | `#backend`, `#ux` | Multiple allowed as separate fields |
-| `!` | priority | `critical` \| `high` \| `medium` \| `low` | `!high` | Default: `medium` |
-| `%` | progress | integer 0–100 | `%40` | Used by renderer for fill bar |
-| `id:` | task ID | slug | `id:auth-refactor` | Must be unique within document |
-| `after:` | dependency | ID list | `after:task-a,task-b` | AND logic. `after:a\|b` for OR logic |
-| `+` | modifier | modifier keyword | `+deadline`, `+external` | See Section 14 |
-| `>` | start date | ISO date | `>2026-03-01` | Overrides computed start; task cannot start before this date |
-| `<` | due date | ISO date | `<2026-03-31` | Soft deadline; triggers warning if scheduled end exceeds this |
-| `$` | ticket reference | string | `$JIRA-1042`, `$GH-99` | Opaque; rendered as a link if URL template configured |
-
-### 6.1 Multiple Assignees
-
-```
-[~] Design review | 2d | @alice @bob | #design
-```
-
-Space-separated handles within a single `@` field are all valid. Alternatively:
-
-```
-[~] Design review | 2d | @alice | @bob | #design
-```
-
-Both forms produce the same result.
+| Sigil | Name | Example | Notes |
+|---|---|---|---|
+| (no sigil) | duration | `3d`, `2bd`, `1w` | Defaults to `1d` if absent |
+| `@` | assignee | `@alice`, `@alice @bob` | Multiple: space-separated or repeat `@` fields |
+| `#` | tag | `#backend` | Multiple allowed |
+| `!` | priority | `!high` | `critical` / `high` / `medium` / `low` |
+| `%` | progress | `%40` | Integer 0–100; fills bar |
+| `id:` | task ID | `id:auth-refactor` | Slug; unique per document |
+| `after:` | dependency | `after:a,b` / `after:a\|b` | AND (comma) or OR (pipe) |
+| `+` | modifier | `+deadline`, `+delayed:3d` | See Modifiers section |
+| `>` | start floor | `>2026-03-01` | Task can't start before this date |
+| `<` | soft due date | `<2026-03-31` | Flags overrun visually |
+| `$` | ticket ref | `$JIRA-42` | Opaque; rendered as link if URL template configured |
 
 ---
 
-## 7. Duration Grammar
+## Duration Grammar
 
-### 7.1 Unit Tokens
+A duration is a positive number (integer or decimal) followed immediately by a unit suffix, no spaces.
 
-| Suffix | Meaning | Business-Day Semantics |
+| Suffix | Meaning | Respects `schedule` setting? |
 |---|---|---|
-| `h` | Hours | Calendar hours only; does not respect `schedule` setting |
-| `d` | Days | Calendar days unless `schedule: business-days` is set |
-| `bd` | Business days | Always business days regardless of `schedule` setting |
-| `w` | Weeks | Always 7 calendar days (= 5bd if `schedule: business-days`) |
-| `m` | Months | Calendar months (28–31 days depending on month) |
-| `q` | Quarters | 3 calendar months |
+| `h` | Hours | No — always calendar hours |
+| `d` | Calendar or business days | Yes |
+| `bd` | Business days | Always business days |
+| `w` | Weeks (7 calendar days) | No |
+| `m` | Calendar months | No |
+| `q` | Quarters (3 months) | No |
 
-### 7.2 Business Days
-
-Business days are Monday through Friday, excluding no holidays by default. A future `holidays` header field will allow specifying a holiday calendar. The `bd` suffix always means business days. The bare `d` suffix follows the document's `schedule` setting.
-
-### 7.3 Duration Format
-
-A duration token is a positive number (integer or decimal) followed immediately by a unit suffix, with no space.
-
-```
-3d    5bd    2w    1.5h    0.5m    1q
-```
-
-Decimal durations are valid. `1.5d` means one and a half days (36 calendar hours).
-
-### 7.4 Compound Durations
-
-Compound durations are not supported in v0.1.0. `2w3d` is a parse error. Use the most appropriate single unit or convert manually.
+Examples: `3d`, `5bd`, `2w`, `1.5h`, `0.5m`, `1q`. Decimal durations are valid. Compound durations (`2w3d`) are not supported.
 
 ---
 
-## 8. Date Expressions
+## Scheduling Model
 
-### 8.1 ISO Dates
+Tasks are scheduled sequentially by default — Task N starts the day after Task N−1 ends. The first task starts on the document `start` date.
 
-All absolute dates use ISO 8601 format: `YYYY-MM-DD`. Partial dates (`2026-03`) are not supported.
+**Start date resolution (in order of precedence):**
 
-### 8.2 Start Date Override (`>`)
+1. `after:` dependencies — start is the maximum end date of all resolved deps (AND) or minimum (OR).
+2. `>start-date` field — task cannot start before this date; whichever is later wins.
+3. Sequential position — starts immediately after the preceding task ends.
 
-```
->2026-03-01
-```
+`deferred` and `cancelled` tasks are skipped in the sequential chain. `done` tasks occupy their slot normally (start + duration); they are historical.
 
-The `>` field sets the earliest possible start date for the task. If the sequentially computed start date is already later than this date, the override has no effect. If the computed start is earlier, the task is pushed forward to the specified date (introducing a gap in the schedule).
-
-### 8.3 Due Date (`<`)
-
-```
-<2026-03-31
-```
-
-The `<` field sets a soft deadline. The parser and renderer use this to flag overruns visually. It does not affect scheduling computations unless the `+deadline` modifier is also present (see Section 14).
-
-### 8.4 Milestone Date (`>>` with `>`)
-
-On milestone lines, the `>` field sets the milestone's exact date:
-
-```
->> Go-live | >2026-04-01 | +deadline | id:go-live
-```
-
-If the `>` field is absent from a milestone line, the milestone's date is computed as the end of the preceding sequential chain.
+`+fixed` combined with `>date` pins the task absolutely — no upstream dependency can push it later.
 
 ---
 
-## 9. Sequential Scheduling Model
-
-### 9.1 Default Behavior
-
-Tasks in a YATT document are scheduled sequentially. Task N starts on the day after Task N−1 ends, subject to the document's `schedule` setting (calendar vs. business days for gaps).
-
-The first task starts on the document `start` date.
-
-### 9.2 Override Precedence
-
-The following rules are applied in order to determine a task's start date:
-
-1. If the task has `after:` dependencies, its start date is the maximum end date of all resolved dependencies (AND) or the minimum end date (OR). This supersedes sequential position.
-2. If the task has a `>start-date` field, its start date is the later of the computed dependency date and the specified date.
-3. Otherwise, the task starts immediately after the preceding task in document order ends.
-
-### 9.3 Skipped Statuses
-
-Tasks with status `deferred` or `cancelled` are skipped in sequential chaining. The task immediately following a deferred or cancelled task starts at the same date that the skipped task would have started.
-
-### 9.4 Done Tasks
-
-Completed (`done`) tasks use their duration as historical. Their end date is computed identically to active/new tasks — `start + duration`. This means done tasks still occupy their slot in the schedule. Renderers may style them differently (filled bar, strikethrough) but they are not removed from the timeline.
-
-### 9.5 Gaps and Overlaps
-
-A `>start-date` override may introduce a gap between tasks (the preceding task ends before the override date). Gaps are valid and rendered as empty space. There is no "overlap" concept in sequential mode; tasks do not overlap unless they are in separate parallel blocks.
-
----
-
-## 10. Parallel Blocks
-
-### 10.1 Syntax
+## Parallel Blocks
 
 ```
-parallel: blockname | after:other-block | >start-date
-[~] Task one  | 3d | @alice | id:task-one
-[ ] Task two  | 2d | @bob
+parallel: blockname | after:other | >start-date
+[ ] Task A | 3d | @alice
+[ ] Task B | 2d | @bob
 end: blockname
 ```
 
-A `parallel:` line opens a named block. All tasks between `parallel:` and the matching `end:` are considered members of that block. The block name is its implicit ID for `after:` references.
+Tasks within a block are scheduled sequentially among themselves, starting at the block's anchor point. Multiple parallel blocks opening at the same document position run concurrently — they do not advance the outer sequential chain. The block name is its implicit ID for `after:` references.
 
-### 10.2 Block Scheduling
-
-- All tasks within a block are scheduled sequentially by default (relative to each other), starting at the block's own start date.
-- The block itself starts at the end of the preceding sequential element (the same rules as a regular task), unless overridden by `after:` or `>` on the `parallel:` line.
-- Multiple parallel blocks that open at the same point in the document run concurrently with respect to the outer sequential chain.
-
-### 10.3 Block Completion Semantics
-
-When another task or block uses `after:blockname`, the resolved date is the **end of the last task in that block** — i.e., the latest end date among all tasks that are members of that block (accounting for their own sequential chains within the block).
-
-### 10.4 Nested Blocks
-
-Nested `parallel:` blocks are not supported in v0.1.0.
-
-### 10.5 Tasks Outside Blocks
-
-Tasks appearing in the outer (top-level) sequential chain are not affected by parallel blocks except through explicit `after:` references. A task that appears in document order after an `end:` line is scheduled after the end of... the preceding sequential element — which may or may not be the parallel block, depending on document structure.
-
-To explicitly sequence the outer chain after a parallel block, use `after:blockname` on the downstream task:
+**Block completion:** `after:blockname` resolves to the end date of the last task in that block (the latest end across all members). To sequence the outer chain after parallel blocks, use explicit `after:` references:
 
 ```
 parallel: phase-a
-[~] Work A | 3d
+[ ] Work A | 3d
 end: phase-a
 
 parallel: phase-b
@@ -346,237 +186,113 @@ end: phase-b
 [ ] Integration | 2d | after:phase-a,phase-b
 ```
 
----
-
-## 11. Task IDs and Dependencies
-
-### 11.1 The `id:` Field
-
-```
-id:my-task-slug
-```
-
-Task IDs are slugs: lowercase letters, digits, and hyphens. No spaces. IDs must be unique within a document. Duplicate IDs produce a parse error.
-
-Block names (from `parallel:` lines) occupy the same namespace as task IDs. A block named `frontend` conflicts with a task with `id:frontend`.
-
-### 11.2 Auto-IDs
-
-Tasks without an explicit `id:` field do not have an addressable ID and cannot be referenced by `after:`. A future version may introduce auto-generated positional IDs.
-
-### 11.3 Subtask IDs
-
-Subtasks may have their own `id:` fields:
-
-```
-[~] Parent task | 5d | id:parent
-.  [~] Child one | 2d | id:child-one
-.  [ ] Child two | 3d | id:child-two | after:child-one
-```
-
-Subtask IDs are in the same document-global namespace as top-level task IDs.
-
-### 11.4 `after:` AND Logic
-
-```
-after:task-a,task-b
-```
-
-Comma-separated IDs express AND logic: the task starts after **all** listed dependencies have ended.
-
-### 11.5 `after:` OR Logic
-
-```
-after:task-a|task-b
-```
-
-Pipe-separated IDs express OR logic: the task starts after **any one** of the listed dependencies has ended (i.e., the minimum end date).
-
-### 11.6 Mixed AND/OR
-
-AND and OR cannot be mixed on the same `after:` field in v0.1.0. Use separate `after:` fields or restructure with an intermediate task.
-
-### 11.7 Cycle Detection
-
-The parser performs cycle detection after resolving all `after:` references. A circular dependency (task A depends on task B which depends on task A) produces a parse error listing the cycle members. Deferred and cancelled tasks are excluded from cycle detection.
+Block names and task IDs share the same namespace. Nested parallel blocks are not supported.
 
 ---
 
-## 12. Subtask Dot Notation
+## Task IDs and Dependencies
 
-### 12.1 Depth Levels
+**IDs** (`id:slug`) are slugs (lowercase letters, digits, hyphens), unique within the document. Tasks without an `id:` cannot be referenced by `after:`. Subtask IDs are in the same global namespace as top-level IDs.
 
-Subtasks are indicated by leading dots before the `[status]` token:
+**AND dependency** (`after:a,b`) — starts after all listed deps have ended.  
+**OR dependency** (`after:a|b`) — starts after any one dep has ended.  
+AND and OR cannot be mixed on the same `after:` field.
 
-| Prefix | Depth | Maximum Nesting |
-|---|---|---|
-| `.` (one dot + space) | Level 1 | Under any top-level task |
-| `..` (two dots + space) | Level 2 | Under a Level 1 subtask |
-| `...` (three dots + space) | Level 3 | Under a Level 2 subtask |
+The parser performs cycle detection after resolving all `after:` references. A circular dependency is a parse error.
 
-Depth beyond Level 3 is not supported in v0.1.0.
+---
 
-### 12.2 Syntax
+## Subtasks
 
 ```
 [~] Parent task | 5d | @alice | id:parent
-.  [x] Research    | 1d | @alice | %100
-.  [~] Implement   | 3d | @alice | %40 | id:parent-impl
-.. [x] Unit tests  | 1d | @alice | %100
-.. [ ] Integration | 1d | @alice | after:parent-impl
-.  [ ] Review      | 1d | @alice
+.  [x] Research   | 1d
+.  [~] Implement  | 3d | id:impl
+.. [ ] Unit tests | 1d
+.. [ ] Integration| 1d | after:impl
+.  [ ] Review     | 1d
 ```
 
-### 12.3 Subtask Scheduling
+Leading dots indicate depth: `.` = level 1, `..` = level 2, `...` = level 3. Subtasks are scheduled sequentially within the parent, starting at the parent's start date.
 
-Subtasks within a parent are scheduled sequentially relative to each other, starting at the parent's start date. The parent's duration, if explicitly specified, is the authoritative duration for scheduling purposes. If the parent has no explicit duration, it is computed as the sum of its subtasks' durations.
-
-### 12.4 Progress Rollup
-
-If a parent task has no explicit `%progress` field, its progress is computed as the weighted average of subtask progress values, weighted by duration. If a parent has an explicit `%` field, that value takes precedence over rollup.
+If the parent has no explicit duration, it is computed as the sum of its subtasks' durations. If the parent has no explicit `%progress`, it is the weighted average of subtask progress (by duration).
 
 ---
 
-## 13. Milestones
-
-### 13.1 Syntax
+## Milestones
 
 ```
->> Milestone name | >2026-03-15 | +deadline | id:milestone-slug
+>> Milestone name | >2026-03-15 | +deadline | id:go-live | after:phase1
 ```
 
-The `>>` prefix designates a milestone. Milestones have zero duration and appear as a point on the Gantt timeline.
+Milestones have zero duration and appear as a point (diamond ◆) on the timeline. If a `>date` field is present, the milestone is pinned to that date; otherwise its date is the end of the preceding sequential element. Milestones accept `id:`, `after:`, `>`, `+modifier`, `@`, and `#` fields. They participate in the sequential chain (zero duration — start and end are the same day).
 
-### 13.2 Date Behavior
+---
 
-- If a `>date` field is present, the milestone is pinned to that date.
-- If no `>date` field is present, the milestone date is computed as the end of the preceding sequential element (the same as a zero-duration task).
+## Modifiers
 
-### 13.3 Milestone Fields
+Modifiers are `+keyword` fields that attach flags to tasks or milestones.
 
-Milestones accept a subset of task fields:
-
-| Field | Supported | Notes |
+| Modifier | Scheduling Effect | Rendering Effect |
 |---|---|---|
-| `>date` | Yes | Pins the milestone to an absolute date |
-| `id:` | Yes | Makes the milestone addressable as a dependency |
-| `+modifier` | Yes | `+deadline` and `+fixed` are most common |
-| `@assignee` | Yes | Optional owner |
-| `#tag` | Yes | Optional tag |
-| `after:` | Yes | Milestone waits for dependencies before being placed |
-| `duration` | No | Always zero |
-| `%progress` | No | Not applicable |
+| `+deadline` | Emits overrun warning if computed end > `<due-date` | Red flag/diamond at due date |
+| `+fixed` | Pins task to `>start-date`; deps cannot push it later | Lock icon or hatched bar |
+| `+delayed:X` | Shifts start+end forward by X; stores original as `plannedStart`/`plannedEnd` | Orange ghost bar at original position |
+| `+blocked:X` | Same time-shift as `+delayed:X`; semantically: held up externally | Red ghost bar at original position |
+| `+hard-block` | Stops sequential chain at this blocked task | — |
+| `+external` | None | Different bar colour (third-party/vendor work) |
+| `+critical` | None | Bold/bright bar (critical path) |
+| `+tentative` | None | Dashed bar or diamond outline |
+| `+at-risk` | None | Yellow warning icon |
+| `+waiting` | None | Clock icon |
 
-### 13.4 Participation in Sequential Chain
+### Time-Shift Modifiers
 
-A milestone participates in the sequential chain like any other element. A task following a milestone in document order starts on the milestone's date (zero duration means start and end are the same day).
+`+delayed:X` and `+blocked:X` accept a duration value (`3d`, `2w`, `1bd`, etc.) and push the task's computed start and end forward by that amount. The original (unshifted) dates are preserved as `plannedStart`/`plannedEnd` and rendered as a ghost bar:
+
+- **`+delayed:X`** — internal slip (team-side). Ghost bar is **orange**.
+- **`+blocked:X`** — held up by an external factor for a known duration. Ghost bar is **red**.
+
+```
+[~] API integration      | 5d | @alice | +delayed:3d
+// Was planned for Mon; environment issues pushed start to Thu.
+
+[!] SWIFT certification  | 8d | @carol | +blocked:2w
+// Waiting on SWIFT sandbox credentials — estimated 2-week hold.
+```
+
+Both modifiers can be applied to the same task; shifts are applied sequentially.
 
 ---
 
-## 14. Modifier System
-
-Modifiers are `+keyword` fields that attach semantic flags to tasks, milestones, or blocks. They affect rendering and may affect scheduling.
-
-| Modifier | Applies To | Scheduling Effect | Rendering Effect |
-|---|---|---|---|
-| `+deadline` | Task, Milestone | If combined with `<due-date`, scheduler emits overrun error if computed end > due date | Red diamond or flag on Gantt |
-| `+fixed` | Task, Milestone | Pins the task to its `>start-date`; no upstream dependency can push it later | Hatched bar; lock icon |
-| `+delayed:X` | Task | Shifts `computedStart`/`computedEnd` forward by X; original dates stored as `plannedStart`/`plannedEnd` | Orange ghost bar at planned position; orange left-edge accent on actual bar |
-| `+blocked:X` | Task | Same time-shift as `+delayed:X` but semantically: task is held up externally for duration X | Red ghost bar at planned position; red left-edge accent on actual bar |
-| `+external` | Task | No scheduling effect | Different bar color (e.g., orange); indicates third-party or vendor dependency |
-| `+waiting` | Task | No scheduling effect | Waiting/clock icon; indicates task is blocked on external response |
-| `+at-risk` | Task | No scheduling effect | Yellow warning icon |
-| `+blocked` | Task | No scheduling effect | Red blocked icon (same as `[!]` status but usable on any status) |
-| `+critical` | Task | No scheduling effect | Bold red bar; marks critical path membership |
-| `+tentative` | Task, Milestone | No scheduling effect | Dashed bar or diamond outline |
-| `+recurring` | Task | No scheduling effect | Repeat icon; used by renderer when `*` prefix is present |
-| `+milestone` | Task | Treats task as zero-duration milestone | Same as `>>` rendering |
-
-### 14.1 Time-Shift Modifiers
-
-`+delayed:X` and `+blocked:X` both accept a duration value (same syntax as task durations: `3d`, `2w`, `1bd`, etc.) and push the task's computed start and end forward by that amount. The original (unshifted) dates are preserved as `plannedStart` / `plannedEnd` and rendered as a ghost bar:
-
-- **`+delayed:X`** — the task started/will start later than originally planned (internal slip). Ghost bar is **orange**.
-- **`+blocked:X`** — the task is held up by an external dependency for a known duration. Ghost bar is **red**.
-
-Both modifiers can stack (e.g., `+delayed:3d` and later `+blocked:1w` on the same task; the shifts are applied sequentially).
+## Recurring Tasks
 
 ```
-[~] API integration | 5d | @alice | +delayed:3d
-// Was planned to start Mon; now starts Thu due to env issues.
-
-[~] SWIFT certification | 8d | @carol | +blocked:2w
-// Waiting on SWIFT sandbox credentials; will resume in 2 weeks.
+*daily     Standup             | 15m | @team
+*weekday   Async update        | 5m  | @team
+*weekly    Sprint planning     | 2h  | @team
+*biweekly  Architecture sync   | 1h  | @leads
+*monthly   Stakeholder review  | 2h  | @pm
+*quarterly Business review     | 3h  | @exec
 ```
+
+Recurring tasks do not participate in the sequential scheduling chain and do not affect other tasks' start dates. They are rendered as repeating blocks across the document's date range.
 
 ---
 
-## 15. Recurring Tasks
+## Sections and Comments
 
-### 15.1 Syntax
+**Sections** (`#` or `##` + space + name) group tasks visually. They have no effect on scheduling. A renderer may draw a divider row with the section label.
 
-```
-*daily   Standup             | 15m | @team   | #ceremony
-*weekly  Sprint planning     | 2h  | @team   | #ceremony
-*biweekly  Architecture sync | 1h  | @leads  | id:arch-sync
-*monthly   Stakeholder review | 2h  | @pm
-*quarterly Business review   | 3h  | @exec
-```
+**Standalone comments** (`//` lines not immediately following a task) are ignored by the parser. A `//` sequence within a task name or field value is treated as literal characters.
 
-The `*` prefix followed immediately by a recurrence token designates a recurring task.
-
-### 15.2 Recurrence Tokens
-
-| Token | Frequency |
-|---|---|
-| `daily` | Every calendar day |
-| `weekday` | Every business day (Mon–Fri) |
-| `weekly` | Once per week (same day as `start`) |
-| `biweekly` | Every two weeks |
-| `monthly` | Once per calendar month |
-| `quarterly` | Once per quarter |
-
-### 15.3 Rendering
-
-Recurring tasks are rendered as repeating blocks across the timeline for the duration of the document's date range. They do not participate in the sequential scheduling chain and do not affect the start dates of other tasks. They appear as a separate "ceremonies" lane or as thin repeating bars depending on renderer configuration.
+**Task descriptions** (`//` lines immediately following a task, with no blank line) are attached to that task as its description. See Task Syntax above.
 
 ---
 
-## 16. Sections
+## Formal Grammar
 
-### 16.1 Syntax
-
-```
-# Section Name
-```
-
-A `#` followed by a space and a name creates a section header. Section headers are purely organizational; they have no effect on scheduling, dependencies, or the sequential chain. Tasks in different sections are scheduled continuously as if the section headers were not present.
-
-### 16.2 Purpose
-
-Sections group tasks visually in both the plain-text source and in rendered output. A renderer may draw a horizontal divider and section label on the Gantt chart.
-
-### 16.3 Nesting
-
-Section nesting (e.g., `##`) is not supported in v0.1.0. All sections are at the same hierarchical level.
-
----
-
-## 17. Comments
-
-```
-// This is a comment
-```
-
-Any line beginning with `//` is a comment and is entirely ignored by the parser. Comments may appear anywhere in the document, including within parallel blocks and the header zone.
-
-Inline comments (partial-line comments) are not supported. A `//` sequence within a task name or field value is treated as literal characters.
-
----
-
-## 18. Formal Grammar
-
-The following is a PEG-style sketch of the YATT grammar. This is informative, not normative.
+PEG-style sketch (informative, not normative):
 
 ```peg
 Document       <- Header? Body
@@ -591,14 +307,14 @@ BodyLine       <- Comment / Section / Milestone / ParallelOpen
                / BlankLine
 
 Comment        <- "//" (!NL .)* NL
-Section        <- "#" SP Name NL
+Section        <- "#"+ SP Name NL
 Name           <- (!NL .)+
 
 Milestone      <- ">>" SP Name PipeFields? NL
 
 ParallelOpen   <- "parallel:" SP BlockName PipeFields? NL
-ParallelClose  <- "end:" SP BlockName NL
-BlockName      <- [a-z0-9-]+
+ParallelClose  <- "end:" (SP BlockName)? NL
+BlockName      <- [a-zA-Z0-9_-]+
 
 RecurringTask  <- "*" RecurToken SP Name PipeFields? NL
 RecurToken     <- "daily" / "weekday" / "weekly" / "biweekly"
@@ -625,7 +341,7 @@ PriorityField  <- "!" ("critical" / "high" / "medium" / "low")
 ProgressField  <- "%" [0-9]+ ("%"?)
 IdField        <- "id:" Slug
 AfterField     <- "after:" Slug ("," Slug)* / "after:" Slug ("|" Slug)*
-ModifierField  <- "+" ModifierWord
+ModifierField  <- "+" ModifierWord (":" DurationField)?
 StartDateField <- ">" ISODate
 DueDateField   <- "<" ISODate
 TicketField    <- "$" [A-Z0-9_-]+
@@ -639,63 +355,12 @@ NL             <- "\n" / "\r\n"
 
 ---
 
-## 19. Rendering Model
+## Rendering Model
 
-### 19.1 Gantt Chart Structure
+A rendered YATT document is a horizontal Gantt chart with one row per task, subtask, and milestone; section headers as divider rows; and a date axis scaled to the full document range.
 
-A rendered YATT document produces a horizontal Gantt chart with:
+**Bar colours by status:** `new` → steel blue · `active` → blue · `done` → green · `blocked` → red stripes · `at-risk` → amber · `deferred` → grey · `cancelled` → light grey + strikethrough · `review` → violet · `paused` → slate-dark.
 
-- A date axis along the top (or bottom), scaled to the document's full date range.
-- One row per task, subtask, and milestone.
-- Section headers rendered as divider rows.
-- Parallel blocks optionally grouped visually.
+**Progress fill:** `%progress` splits the bar — filled portion uses the status colour; remainder uses a lighter tint. `%100` renders identically to `done`.
 
-### 19.2 Bar Colors by Status
-
-| Status | Suggested Color | Notes |
-|---|---|---|
-| `new` | Steel blue | Default unstarted bar |
-| `active` | Blue | Filled to `%progress` |
-| `done` | Green | Fully filled |
-| `blocked` | Red | Striped or solid red |
-| `at-risk` | Yellow/amber | Warning stripe |
-| `deferred` | Grey | Semi-transparent or dashed |
-| `cancelled` | Light grey | Crossed out |
-| `review` | Purple/violet | Awaiting approval |
-| `paused` | Orange | Paused indicator |
-
-### 19.3 Progress Fill
-
-For tasks with `%progress`, the bar is split: the filled portion (up to `%` of the bar width) uses the primary status color; the remainder uses a lighter tint. A `%0` task shows an empty bar in status color. A `%100` task should automatically use `done` rendering.
-
-### 19.4 Modifiers in Rendering
-
-- `+deadline`: Add a red flag or diamond marker at the due date.
-- `+fixed`: Add a lock icon or hatched fill to the bar.
-- `+external`: Use an orange or teal bar variant.
-- `+critical`: Bold bar outline or bright red fill.
-- `+tentative`: Dashed border.
-
-### 19.5 Milestones in Rendering
-
-Milestones are rendered as a diamond shape (◆) at their date. The `+deadline` modifier colors the diamond red. The `+fixed` modifier adds a lock.
-
-### 19.6 Suggested Rendering Behaviors
-
-- Today line: a vertical dashed line at the current date.
-- Overrun highlight: if a task's computed end date exceeds its `<due-date`, shade the overrun portion in red.
-- Dependency arrows: optional connector lines from dependency end to dependent start; off by default for readability.
-- Assignee avatars: small avatar or initial badge on bars when `@assignee` is present.
-- Hover tooltips: on interactive renderers, hovering a bar shows all field values.
-
----
-
-## 20. Version History
-
-| Version | Date | Notes |
-|---|---|---|
-| 0.1.0 | 2026-03-24 | Initial specification. Core task syntax, parallel blocks, dependencies, subtasks, milestones, modifiers, recurring tasks. |
-
----
-
-*End of YATT Specification v0.1.0*
+**Standard annotations:** today line (vertical dashed), overrun highlight (if computed end > `<due-date`), assignee initials on bars, optional dependency arrows, hover tooltips on interactive renderers.
