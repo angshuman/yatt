@@ -510,6 +510,9 @@ var state = {
   editTask: null, editCtrlId: null, editBidx: null
 };
 
+// Persists the active panel for each yatt ctrl across SSE reloads
+var ctrlViews = {};
+
 var STATUS_COLOR = {
   'new':'#7d8590','active':'#388bfd','done':'#3fb950','blocked':'#f85149',
   'at-risk':'#f0883e','deferred':'#bc8cff','cancelled':'#30363d',
@@ -750,9 +753,14 @@ function initKanban(kbEl, bidx) {
       var yblocks = (state.blocks||[]).filter(function(b){return b.kind==='yatt';});
       var block = yblocks[bidx];
       if (!block||!block.source) return;
+      // Update in memory immediately
+      task.status = newStatus;
       var updated = {}; for (var k in task) updated[k]=task[k];
-      updated.status = newStatus;
       var newSource = patchBlockSource(block.source, task.line, serializeTaskLine(updated));
+      block.source = newSource;
+      // Rebuild kanban in-place so we stay on the kanban tab
+      kbEl.innerHTML = buildKanbanHtml(block.tasks || [], true);
+      initKanban(kbEl, bidx);
       saveBlock(bidx, newSource, null);
     });
   });
@@ -841,6 +849,7 @@ function simpleMarkdown(md) {
 
 // Called from onclick attributes injected into innerHTML — must be top-level
 function yattCtrlSetView(ctrlId, panel) {
+  ctrlViews[ctrlId] = panel;
   var ctrl = document.getElementById(ctrlId);
   if (!ctrl) return;
   ctrl.querySelectorAll('.yatt-ctrl-tab').forEach(function(btn) {
@@ -988,7 +997,12 @@ function buildDocument(blocks, container) {
     }
   });
   container.innerHTML = html;
-  ctrlList.forEach(function(bidx) { initYattCtrl('yatt-' + bidx, bidx); });
+  ctrlList.forEach(function(bidx) {
+    var ctrlId = 'yatt-' + bidx;
+    initYattCtrl(ctrlId, bidx);
+    var saved = ctrlViews[ctrlId];
+    if (saved && saved !== 'timeline') yattCtrlSetView(ctrlId, saved);
+  });
 }
 
 // ── Markdown/edit view ────────────────────────────────────────────────────────
