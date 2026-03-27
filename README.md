@@ -1,138 +1,167 @@
 # YATT — Yet Another Task Tracker
 
-Plain-text Gantt charts that live inside Markdown. Sequential tasks by default, named parallel blocks, pipe-delimited fields, explicit `after:` dependencies — all in one line per task.
+**Markdown is the database. Git is the history. YATT is the UI.**
 
-![build](https://img.shields.io/badge/build-passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue) [![Live editor](https://img.shields.io/badge/editor-live-blue)](https://angshuman.github.io/yatt/)
+YATT is a plain-text task tracker that lives inside your Markdown files. Tasks are written in a simple one-line format — status, name, duration, assignee, tags — and YATT renders them as a Gantt timeline, Kanban board, or people view. Because everything is text, your whole team can edit tasks in any editor, review changes in pull requests, and get a full audit trail from git for free.
+
+![build](https://img.shields.io/badge/build-passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue)
 
 ---
 
-![YATT example Gantt chart](./examples/showcase.svg)
+## Why YATT?
 
-~~~yatt
+Most task trackers store data in a database you can't read or diff. YATT flips this: **the `.md` file is the source of truth.** This means:
+
+- **Git-native** — every task change is a commit. Branch for experiments, merge to ship, revert mistakes.
+- **No lock-in** — your tasks are plain text. Open them in Vim, VS Code, Obsidian, or cat them in a terminal.
+- **Team-friendly** — pull requests *are* planning reviews. Comment on task lines, suggest changes, approve.
+- **Offline-first** — nothing to sync. The file is always up to date.
+- **Lightweight server** — run `yatt serve` to get a live Gantt, Kanban, and People view. Commit and push without leaving the browser.
+
+---
+
+## What it looks like
+
+```yatt
 title: Product v2 Launch
 start: 2026-01-05
 
 [x] Discovery & planning | id:phase1 | 5d | @alice | delayed 3d
->> Kickoff complete      | after:phase1
+// Research took longer than expected — scope was broader than estimated.
+>> Kickoff complete | after:phase1
 
 parallel: design | after:phase1
-[done]   UX wireframes         | 4d  | @carol  | %100
-[!] Visual design | 3d | @carol | %99 | delayed 2d
+[done] UX wireframes  | 4d | @carol | %100
+[~]    Visual design  | 3d | @carol | %80 | delayed 2d
 end: design
 
 parallel: engineering | after:phase1
-[x] API scaffold | id:api | 3d | @bob | delayed 2w | blocked 1w
-[x] Auth service | 4d | @bob | %45 | after:api
-[x] Core features | 1w | @alice | after:api | delayed 1w
+[x] API scaffold  | id:api | 3d | @bob | blocked 1w | delayed 2d
+[ ] Auth service  | 4d | @bob   | after:api | %45
+[ ] Core features | 1w | @alice | after:api
 end: engineering
 
 [ ] Integration & QA | id:qa | 5d | @alice @bob | after:design,engineering
-// hello
-[!]      Performance testing   | 2d  | @bob             | after:qa
->> v2.0 Release                | after:qa               | +deadline
-~~~
+>> v2.0 Release      | after:qa | +deadline
+```
 
-**What this demonstrates:**
-- `[done]` `[active]` `[?]` `[!]` `[new]` — task statuses with distinct colours
-- `parallel: name` — two workstreams running concurrently from the same anchor
-- `after:phase1` / `after:design,engineering` — explicit AND dependencies
-- `delayed 2d` / `delayed 1w` — shifts actual bar forward; **orange** ghost bar shows original planned position
-- `blocked 2w` — same time-shift but semantically external; **red** ghost bar
-- `after:design,engineering` — `design` and `engineering` are the parallel block names (their implicit IDs)
-- `>> milestone` — diamond markers; `+deadline` draws a full-height hairline
-- `%60` progress fill inside bars · `@assignee` initials on bars
-- Today line drawn automatically
+Tasks render as a minimal **line + circle** timeline — a filled dot at start, hollow ring at end, bright leading segment for progress. Milestones are bullseye circles. Hover any row for a details card.
 
 ---
 
 ## Quick start
 
-**Try it live:** [angshuman.github.io/yatt](https://angshuman.github.io/yatt/)
+```bash
+# Serve a folder of Markdown files
+npx yatt serve ./docs
+
+# Or install globally
+npm install -g yatt
+yatt serve .
+```
+
+Open `http://localhost:3000`. Pick any `.md` file from the sidebar. YATT finds all ` ```yatt ` blocks in the file and renders them.
+
+The **Edit** tab lets you write raw YATT syntax. Changes save automatically and the view updates live.
+
+---
+
+## Task syntax
+
+One task per line:
+
+```
+[status] Task name | duration | @assignee | #tag | %progress | id:slug | after:dep
+// Optional description — attach one or more comment lines immediately after a task
+```
+
+**Status sigils:**
+
+| Sigil | Word | Meaning |
+|---|---|---|
+| `[ ]` | `[new]` | Not started |
+| `[~]` | `[active]` | In progress |
+| `[=]` | `[review]` | In review |
+| `[!]` | `[blocked]` | Blocked |
+| `[o]` | `[paused]` | Paused |
+| `[x]` | `[done]` | Complete |
+| `[_]` | `[cancelled]` | Cancelled |
+
+**Other syntax:**
+
+```
+>> Milestone name | after:id | +deadline   ← milestone; +deadline draws a full-height line
+parallel: name                              ← parallel block start
+end: name                                  ← parallel block end
+[ ] Task | blocked 2w                      ← externally blocked for 2 weeks (red ghost)
+[ ] Task | delayed 3d                      ← running 3 days late (orange overrun)
+[ ] Task | 5bd                             ← 5 business days
+[ ] Task | 2026-04-01                      ← fixed start date
+[ ] Task | !high                           ← priority: low / normal / high / critical
+```
+
+---
+
+## The server
 
 ```bash
-npm install yatt
+yatt serve [folder] [--port 3000]
 ```
 
-```js
-import { render } from 'yatt'
+Four views, switchable by tab:
 
-const { html, errors } = render(source, 'gantt')
-// html is a self-contained <svg> string
-```
+| View | What you see |
+|---|---|
+| **Timeline** | Minimal Gantt — lines and circles, hover for details |
+| **Kanban** | Columns by status; drag to reassign; empty columns collapse to slim strips |
+| **People** | Tasks grouped by assignee |
+| **Edit** | Raw YATT source with live save |
 
-Or drop a `yatt` fence in any Markdown file:
+Click any task in any view to open the **edit modal** — change status, assignees, dates, priority, delayed/blocked duration, and description.
 
-~~~md
-```yatt
-title: My Project
-start: 2026-03-01
+### Git integration
 
-[done]   Research   | 3d | @alice | id:r
-[active] Build      | 1w | @bob   | after:r | %40
-[new]    Ship it    | 1d | @alice | after:build
->> Launch           | after:ship-it | +deadline
-```
-~~~
+The top bar shows your current branch and sync state. No terminal needed for day-to-day use:
 
-## Key concepts
+- **Pull** — fetch and merge the latest from remote
+- **Commit** — stages everything (`git add -A`) and commits with your message
+- **Push** — pushes to remote
 
-| Concept | Syntax | Notes |
-|---|---|---|
-| Sequential (default) | just write tasks top-to-bottom | each starts when the previous ends |
-| Parallel block | `parallel: name` … `end: name` | all run from the same anchor; don't advance it |
-| Named dependency | `id:slug` on source, `after:slug` on dependent | doc-global; works across blocks |
-| AND dependency | `after:a,b` | starts after both complete |
-| OR dependency | `after:a\|b` | starts after either completes |
-| Business days | `5bd` or header `schedule: business-days` | skips Sat/Sun |
-| Subtasks | leading `.` or `..` | sequential within parent |
-| Task description | `//` line(s) immediately after a task | attached as tooltip/annotation; blank line breaks attachment |
-| Time-shift (slip) | `delayed 3d` | shifts bar forward; orange ghost shows original |
-| Time-shift (external block) | `blocked 2w` | same shift; red ghost shows original |
+Merge conflicts and auth are left to the CLI — YATT surfaces the error and tells you to resolve from the terminal.
 
-## Status symbols
+---
 
-Both forms are accepted:
+## Key features
 
-| Sigil | Word | Colour |
-|---|---|---|
-| `[x]` | `[done]` | green |
-| `[~]` | `[active]` | blue |
-| `[ ]` | `[new]` | slate |
-| `[!]` | `[blocked]` | red + stripes |
-| `[?]` | `[at-risk]` | amber |
-| `[>]` | `[deferred]` | purple (skipped in chain) |
-| `[_]` | `[cancelled]` | grey + strikethrough |
-| `[=]` | `[review]` | violet |
-| `[o]` | `[paused]` | slate-dark |
+- **Descriptions** — `//` comment lines immediately after a task become its description (shown in hover card and list view)
+- **Dependencies** — `after:a,b` (AND), `after:a|b` (OR), cross-block by ID
+- **Parallel workstreams** — `parallel: name` … `end: name`
+- **Subtasks** — leading `.` or `..` (sequential within parent)
+- **Progress** — `%60` renders as a bright leading segment on the timeline bar
+- **Delayed / blocked** — `delayed 3d` extends the end; `blocked 2w` shifts the start; both show ghost indicators
+- **Business days** — `5bd` or header `schedule: business-days`
+- **Milestones** — `>> name | +deadline`
 
-## Documentation
-
-- [SPEC.md](./SPEC.md) — Full language specification with formal grammar
-- [docs/syntax.md](./docs/syntax.md) — Tutorial-style guide, learn by example
-- [docs/integrations.md](./docs/integrations.md) — VS Code, Obsidian, Remark, Browser
-
-## Integrations
-
-| Environment | How | Source |
-|---|---|---|
-| **VS Code** | Extension — renders `yatt` fences in Markdown preview live | [integrations/vscode/](./integrations/vscode/) |
-| **Obsidian** | Community plugin — live preview in notes | [integrations/obsidian/](./integrations/obsidian/) |
-| **Remark / MDX** | `remarkYatt` plugin for Docusaurus, Next.js, Astro | [integrations/remark/](./integrations/remark/) |
-| **Browser** | Standalone `<script>` tag, zero framework | [integrations/browser/](./integrations/browser/) |
+---
 
 ## Examples
 
 | File | Description |
 |---|---|
-| [01-hello-world.md](./examples/01-hello-world.md) | Simplest possible chart — sequential tasks with descriptions |
-| [02-team-sprint.md](./examples/02-team-sprint.md) | Sprint planning with statuses, assignees, priorities, and dependencies |
-| [03-product-launch.md](./examples/03-product-launch.md) | Phased launch with milestones, subtasks, and cross-phase dependencies |
-| [04-parallel-workstreams.md](./examples/04-parallel-workstreams.md) | Multiple independent workstreams converging on shared milestones |
+| [01-hello-world.md](./examples/01-hello-world.md) | Simplest chart — sequential tasks with descriptions |
+| [02-team-sprint.md](./examples/02-team-sprint.md) | Sprint with statuses, assignees, priorities, dependencies |
+| [03-product-launch.md](./examples/03-product-launch.md) | Phased launch with milestones, subtasks, cross-phase deps |
+| [04-parallel-workstreams.md](./examples/04-parallel-workstreams.md) | Multiple workstreams converging on shared milestones |
 | [05-enterprise-program.md](./examples/05-enterprise-program.md) | Full-scale program — all features combined |
-| [06-delays-and-blocks.md](./examples/06-delays-and-blocks.md) | `delayed X` and `blocked X` with ghost bars |
-| [software-release.yatt](./examples/software-release.yatt) | Multi-team platform v3.0 release |
-| [personal-project.yatt](./examples/personal-project.yatt) | Solo dev portfolio redesign |
-| [construction.yatt](./examples/construction.yatt) | Commercial fit-out — `bd` durations, `+external`, regulatory milestones |
+| [06-delays-and-blocks.md](./examples/06-delays-and-blocks.md) | `delayed X` and `blocked X` with ghost indicators |
+
+---
+
+## Documentation
+
+- [SPEC.md](./SPEC.md) — Full language reference
+
+---
 
 ## License
 
