@@ -569,7 +569,7 @@ function patchBlockSourceWithDescription(source, lineNum, newLine, descText) {
       newLines.push('// ' + dl.trim());
     });
   }
-  Array.prototype.splice.apply(lines, ([lineNum - 1, 1 + oldDescCount] as any[]).concat(newLines));
+  Array.prototype.splice.apply(lines, [lineNum - 1, 1 + oldDescCount].concat(newLines));
   return lines.join('\\n');
 }
 
