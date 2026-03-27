@@ -371,16 +371,18 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .prose tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
 
 /* ── yatt control (embedded per-block) ── */
-.yatt-ctrl { margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; overflow: auto; }
-.yatt-ctrl-bar { display: flex; gap: 2px; padding: 4px 8px;
+.yatt-ctrl { margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; overflow: auto;
+  display: flex; flex-direction: column; resize: vertical; min-height: 220px; }
+.yatt-ctrl-bar { display: flex; gap: 2px; padding: 4px 8px; flex: 0 0 auto;
   border-bottom: 1px solid var(--border); background: var(--panel2); }
 .yatt-ctrl-tab { background: none; border: none; cursor: pointer; padding: 3px 10px;
   font-size: 11px; color: var(--muted); border-radius: 3px;
   transition: color 0.1s, background 0.1s; font-family: inherit; }
 .yatt-ctrl-tab:hover { color: var(--text); background: rgba(255,255,255,0.06); }
 .yatt-ctrl-tab.active { color: var(--accent-hi); background: rgba(56,139,253,0.12); }
+.yatt-ctrl-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
 .yatt-ctrl-panel { display: none; }
-.yatt-ctrl-panel.active { display: block; }
+.yatt-ctrl-panel.active { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; }
 .yatt-ctrl-panel[data-panel="timeline"] svg { max-width: 100%; height: auto; display: block; }
 .yatt-errors { background: rgba(248,81,73,0.08); border-bottom: 1px solid rgba(248,81,73,0.25);
   padding: 6px 12px; font-size: 11px; color: var(--red); font-family: ui-monospace, monospace; }
@@ -441,10 +443,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
   background: var(--bg); color: var(--text); white-space: pre; margin: 0; }
 
 /* ── yatt inline block editor ── */
-.yatt-block-editor { display: block; width: 100%; min-height: 160px; padding: 14px 16px;
+.yatt-block-editor { display: block; width: 100%; flex: 1; min-height: 0; padding: 14px 16px;
   font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
   font-size: 12px; line-height: 1.6; background: var(--bg); color: var(--text);
-  border: none; outline: none; resize: both; tab-size: 2; }
+  border: none; outline: none; resize: none; tab-size: 2; }
 .yatt-block-bar { display: flex; align-items: center; padding: 4px 12px;
   border-top: 1px solid var(--border); background: var(--panel2); min-height: 26px; }
 .yatt-block-status { font-size: 10px; }
