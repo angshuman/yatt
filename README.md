@@ -26,7 +26,7 @@ parallel: engineering | after:phase1
 [x] Core features | 1w | @alice | after:api | delayed 1w
 end: engineering
 
-[!] Integration & QA | id:qa | 5d | @alice @bob | after:design,engineering
+[ ] Integration & QA | id:qa | 5d | @alice @bob | after:design,engineering
 // hello
 [!]      Performance testing   | 2d  | @bob             | after:qa
 >> v2.0 Release                | after:qa               | +deadline

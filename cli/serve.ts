@@ -583,7 +583,7 @@ var STATUS_LABEL = {
   'at-risk':'At Risk','deferred':'Deferred','cancelled':'Cancelled',
   'review':'Review','paused':'Paused'
 };
-var KANBAN_COLS = ['active','new','review','blocked','at-risk','paused','deferred','done','cancelled'];
+var KANBAN_COLS = ['new','active','review','at-risk','blocked','paused','deferred','done','cancelled'];
 
 var STATUS_SIGIL = {
   'new':' ','active':'~','done':'x','blocked':'!',
