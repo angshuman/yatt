@@ -33,6 +33,7 @@ export interface Task {
   type: 'task';
   status: Status;
   name: string;
+  description?: string;
   id?: string;
   assignees: string[];
   tags: string[];
@@ -56,6 +57,7 @@ export interface Task {
 export interface Milestone {
   type: 'milestone';
   name: string;
+  description?: string;
   id?: string;
   date?: string;
   after: Dependency[];

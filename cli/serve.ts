@@ -97,6 +97,7 @@ function parseMdBlocks(source: string): MdBlock[] {
 interface TaskInfo {
   name: string;
   status: string;
+  description?: string;
   assignees: string[];
   tags: string[];
   priority?: string;
@@ -137,6 +138,7 @@ function extractTasksFromItems(items: DocumentItem[]): TaskInfo[] {
     if (t.dueDate) info.dueDate = t.dueDate;
     if (t.after.length) info.after = t.after.map(d => d.ids.join(d.logic === 'or' ? '|' : ',')).join(',');
     if (t.modifiers.length) info.modifiers = [...t.modifiers];
+    if (t.description) info.description = t.description;
     const s = fmt(t.computedStart), e = fmt(t.computedEnd);
     if (s) info.start = s;
     if (e) info.end = e;
@@ -403,7 +405,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .k-card { background: var(--panel); border: 1px solid var(--border); border-radius: 5px;
   padding: 8px 10px; transition: border-color 0.12s; }
 .k-card:hover { border-color: var(--accent); }
-.k-card-name { font-size: 11px; color: var(--text); line-height: 1.4; margin-bottom: 5px; }
+.k-card-name { font-size: 11px; color: var(--text); line-height: 1.4; margin-bottom: 3px; }
+.k-card-desc { font-size: 10px; color: var(--muted); line-height: 1.4; margin-bottom: 5px; font-style: italic; }
 .k-card-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .k-progress { height: 2px; background: var(--border); border-radius: 1px; margin-top: 6px; overflow: hidden; }
 .k-progress-fill { height: 100%; border-radius: 1px; background: var(--accent); }
@@ -468,6 +471,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
   border-radius: 5px; color: var(--text); padding: 5px 8px; font-size: 12px; font-family: inherit;
   outline: none; transition: border-color 0.1s; }
 .te-field input:focus, .te-field select:focus { border-color: var(--accent); }
+.te-field textarea { width: 100%; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 5px; color: var(--text); padding: 5px 8px; font-size: 12px; font-family: inherit;
+  outline: none; transition: border-color 0.1s; resize: vertical; min-height: 56px; box-sizing: border-box; }
+.te-field textarea:focus { border-color: var(--accent); }
 .te-field select option { background: var(--panel); }
 .te-actions { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
 .te-save-msg { font-size: 11px; color: var(--muted); flex: 1; }
@@ -545,6 +552,27 @@ function patchBlockSource(source, lineNum, newLine) {
   return lines.join('\\n');
 }
 
+function patchBlockSourceWithDescription(source, lineNum, newLine, descText) {
+  var lines = source.split('\\n');
+  if (lineNum < 1 || lineNum > lines.length) return source;
+  // Count existing description comment lines immediately after the task line
+  var oldDescCount = 0;
+  var idx = lineNum; // 0-based index of the line after the task
+  while (idx < lines.length && lines[idx].trimStart().startsWith('//')) {
+    oldDescCount++;
+    idx++;
+  }
+  // Build replacement: task line + optional description comment lines
+  var newLines = [newLine];
+  if (descText && descText.trim()) {
+    descText.trim().split('\\n').forEach(function(dl) {
+      newLines.push('// ' + dl.trim());
+    });
+  }
+  Array.prototype.splice.apply(lines, ([lineNum - 1, 1 + oldDescCount] as any[]).concat(newLines));
+  return lines.join('\\n');
+}
+
 function saveBlock(bidx, newSource, onDone) {
   if (!state.currentFile) return;
   // Update local cache so in-flight UI doesn't see stale source
@@ -573,6 +601,7 @@ function openTaskEdit(task) {
   document.getElementById('te-duedate').value = task.dueDate || '';
   document.getElementById('te-id').value = task.id || '';
   document.getElementById('te-after').value = task.after || '';
+  document.getElementById('te-description').value = task.description || '';
   document.getElementById('te-save-msg').textContent = '';
   document.getElementById('task-edit-overlay').classList.remove('hidden');
   setTimeout(function(){ document.getElementById('te-name').focus(); }, 50);
@@ -602,6 +631,7 @@ function saveTaskEdit() {
   updated.dueDate = document.getElementById('te-duedate').value.trim() || null;
   updated.id = document.getElementById('te-id').value.trim() || null;
   updated.after = document.getElementById('te-after').value.trim() || null;
+  updated.description = document.getElementById('te-description').value.trim() || null;
 
   var bidx = state.editTask.bidx;
   var yblocks = (state.blocks || []).filter(function(b){ return b.kind === 'yatt'; });
@@ -612,7 +642,7 @@ function saveTaskEdit() {
     return;
   }
   var newLine = serializeTaskLine(updated);
-  var newSource = patchBlockSource(block.source, task.line, newLine);
+  var newSource = patchBlockSourceWithDescription(block.source, task.line, newLine, updated.description);
   var msgEl = document.getElementById('te-save-msg');
   msgEl.style.color = 'var(--muted)'; msgEl.textContent = 'Saving...';
   saveBlock(bidx, newSource, function(err) {
@@ -846,6 +876,9 @@ function buildKanbanHtml(tasks, compact) {
       var lineAttr = t.line ? ' data-line="' + t.line + '"' : '';
       html += '<div class="k-card" style="' + indent + '"' + lineAttr + '>';
       html += '<div class="k-card-name">' + esc(t.name) + '</div>';
+      if (t.description) {
+        html += '<div class="k-card-desc">' + esc(t.description) + '</div>';
+      }
       html += '<div class="k-card-meta">';
       if (t.assignees && t.assignees.length) {
         t.assignees.slice(0,3).forEach(function(a) { html += avatarEl(a, false); });
@@ -1234,6 +1267,9 @@ function buildShellHtml(rootDir: string): string {
       <div class="te-field"><label>Progress (%)</label><input type="number" id="te-progress" min="0" max="100" placeholder="0"></div>
       <div class="te-field"><label>ID</label><input type="text" id="te-id" placeholder="task-slug"></div>
       <div class="te-field"><label>After (deps)</label><input type="text" id="te-after" placeholder="id1,id2"></div>
+    </div>
+    <div class="te-row">
+      <div class="te-field"><label>Description</label><textarea id="te-description" placeholder="Optional description (saved as // comment lines below the task)"></textarea></div>
     </div>
     <div class="te-actions">
       <span class="te-save-msg" id="te-save-msg"></span>

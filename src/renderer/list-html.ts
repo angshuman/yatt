@@ -93,8 +93,11 @@ function renderTaskRow(task: Task, depth: number, opts: ListOptions): string {
   let row = `
   <tr class="task-row depth-${depth}">
     <td class="name-cell" style="padding-left:${16 + indent}px">
-      <span class="status-icon" title="${STATUS_LABEL[task.status]}">${STATUS_EMOJI[task.status]}</span>
-      <span style="${strikeStyle}">${escapeHtml(task.name)}</span>
+      <div class="name-inner">
+        <span class="status-icon" title="${STATUS_LABEL[task.status]}">${STATUS_EMOJI[task.status]}</span>
+        <span style="${strikeStyle}">${escapeHtml(task.name)}</span>
+      </div>
+      ${task.description ? `<div class="task-desc">${task.description.split('\n').map(escapeHtml).join('<br>')}</div>` : ''}
     </td>
     <td>${statusBadge}</td>
     <td>${assigneeBadges}</td>
@@ -162,7 +165,9 @@ export function renderListHTML(doc: YattDocument, options?: ListOptions): string
     .yatt-list th { background: ${isDark ? '#0f172a' : '#f8fafc'}; padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: ${isDark ? '#94a3b8' : '#64748b'}; border-bottom: 1px solid ${isDark ? '#334155' : '#e2e8f0'}; }
     .yatt-list td { padding: 7px 10px; border-bottom: 1px solid ${isDark ? '#1e293b' : '#f1f5f9'}; vertical-align: middle; }
     .yatt-list tr:hover td { background: ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)'}; }
-    .name-cell { display: flex; align-items: center; gap: 6px; min-width: 200px; }
+    .name-cell { display: flex; flex-direction: column; min-width: 200px; align-items: flex-start; }
+    .name-inner { display: flex; align-items: center; gap: 6px; }
+    .task-desc { font-size: 10px; color: ${isDark ? '#475569' : '#94a3b8'}; margin-top: 2px; padding-left: 22px; font-style: italic; line-height: 1.4; }
     .status-icon { font-size: 14px; }
     .milestone-icon { color: #d97706; font-size: 12px; }
     .status-badge { display: inline-block; padding: 2px 7px; border-radius: 9999px; font-size: 10px; font-weight: 600; color: #fff; white-space: nowrap; }

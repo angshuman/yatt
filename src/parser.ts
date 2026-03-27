@@ -399,6 +399,12 @@ export function parse(source: string): { doc: YattDocument; errors: ParseError[]
       resetTaskStack();
       const ms = buildMilestone(tok.content ?? '', tok.line);
       if (ms.id) registerId(ms.id, ms, tok.line);
+      const descLines: string[] = [];
+      while (i < tokens.length && tokens[i].type === 'comment') {
+        descLines.push(tokens[i].content ?? '');
+        i++;
+      }
+      if (descLines.length > 0) ms.description = descLines.join('\n');
       currentContainer().items.push(ms);
       continue;
     }
@@ -406,6 +412,12 @@ export function parse(source: string): { doc: YattDocument; errors: ParseError[]
     if (tok.type === 'task') {
       const task = buildTask(tok.content ?? '', tok.line, 0);
       if (task.id) registerId(task.id, task, tok.line);
+      const descLines: string[] = [];
+      while (i < tokens.length && tokens[i].type === 'comment') {
+        descLines.push(tokens[i].content ?? '');
+        i++;
+      }
+      if (descLines.length > 0) task.description = descLines.join('\n');
       currentContainer().items.push(task);
       taskStack[0] = task;
       taskStack[1] = taskStack[2] = taskStack[3] = null;
@@ -416,6 +428,12 @@ export function parse(source: string): { doc: YattDocument; errors: ParseError[]
       const depth = tok.depth ?? 1;
       const task = buildTask(tok.content ?? '', tok.line, depth);
       if (task.id) registerId(task.id, task, tok.line);
+      const descLines: string[] = [];
+      while (i < tokens.length && tokens[i].type === 'comment') {
+        descLines.push(tokens[i].content ?? '');
+        i++;
+      }
+      if (descLines.length > 0) task.description = descLines.join('\n');
       taskStack[depth] = task;
       // Clear deeper levels
       for (let d = depth + 1; d <= 3; d++) taskStack[d] = null;

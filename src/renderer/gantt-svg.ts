@@ -505,6 +505,17 @@ export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): strin
           'clip-path': 'url(#chart-clip)',
         }));
       }
+
+      // Transparent clickable overlay for the whole row (enables task edit on click)
+      if (task.description) {
+        parts.push(`<rect x="0" y="${rowY}" width="${opts.width}" height="${opts.rowHeight}" fill="transparent" data-line="${task.line}" style="cursor:pointer"><title>${escapeXml(task.description)}</title></rect>`);
+      } else {
+        parts.push(rect(0, rowY, opts.width, opts.rowHeight, {
+          fill: 'transparent',
+          'data-line': task.line,
+          style: 'cursor:pointer',
+        }));
+      }
     }
 
     if (row.kind === 'milestone' && row.milestone) {
