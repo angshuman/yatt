@@ -411,6 +411,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
   border-radius: 3px; padding: 1px 5px; margin-right: 3px; }
 .k-shift-badge.delayed { background: rgba(245,158,11,0.15); color: #f59e0b; }
 .k-shift-badge.blocked { background: rgba(239,68,68,0.15); color: #ef4444; }
+.k-card-shifts { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 5px; }
 .k-card-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .k-progress { height: 2px; background: var(--border); border-radius: 1px; margin-top: 6px; overflow: hidden; }
 .k-progress-fill { height: 100%; border-radius: 1px; background: var(--accent); }
@@ -920,9 +921,9 @@ function buildKanbanHtml(tasks, compact) {
       if (t.description) {
         html += '<div class="k-card-desc">' + esc(t.description) + '</div>';
       }
-      html += '<div class="k-card-meta">';
       var sb = shiftBadges(t);
-      if (sb) html += sb;
+      if (sb) html += '<div class="k-card-shifts">' + sb + '</div>';
+      html += '<div class="k-card-meta">';
       if (t.assignees && t.assignees.length) {
         t.assignees.slice(0,3).forEach(function(a) { html += avatarEl(a, false); });
       }
