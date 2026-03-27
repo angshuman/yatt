@@ -15,9 +15,9 @@ schedule: business-days
 // Optional description line (immediately follows the task)
 // More description — shown as tooltip or annotation.
 
-[~] Active task | 2bd | @bob | +delayed:2d
+[~] Active task | 2bd | @bob | delayed 2d
 [x] Done task   | 1w  | @carol | %100
-[!] Blocked     | 4d  | @dave | +blocked:1w
+[~] Blocked     | 4d  | @dave | blocked 1w
 [=] In review   | 2d
 [?] At risk     | 3d | !high
 [>] Deferred    | 2d
@@ -121,7 +121,8 @@ The status token uses either sigil or word form. The task name is everything aft
 | `%` | progress | `%40` | Integer 0–100; fills bar |
 | `id:` | task ID | `id:auth-refactor` | Slug; unique per document |
 | `after:` | dependency | `after:a,b` / `after:a\|b` | AND (comma) or OR (pipe) |
-| `+` | modifier | `+deadline`, `+delayed:3d` | See Modifiers section |
+| `+` | modifier | `+deadline`, `+fixed` | See Modifiers section |
+| (space-separated) | time-shift | `delayed 3d`, `blocked 2w` | See Time-shift Modifiers |
 | `>` | start floor | `>2026-03-01` | Task can't start before this date |
 | `<` | soft due date | `<2026-03-31` | Flags overrun visually |
 | `$` | ticket ref | `$JIRA-42` | Opaque; rendered as link if URL template configured |
@@ -237,8 +238,8 @@ Modifiers are `+keyword` fields that attach flags to tasks or milestones.
 |---|---|---|
 | `+deadline` | Emits overrun warning if computed end > `<due-date` | Red flag/diamond at due date |
 | `+fixed` | Pins task to `>start-date`; deps cannot push it later | Lock icon or hatched bar |
-| `+delayed:X` | Shifts start+end forward by X; stores original as `plannedStart`/`plannedEnd` | Orange ghost bar at original position |
-| `+blocked:X` | Same time-shift as `+delayed:X`; semantically: held up externally | Red ghost bar at original position |
+| `delayed X` | Shifts start+end forward by X; stores original as `plannedStart`/`plannedEnd` | Orange ghost bar at original position |
+| `blocked X` | Same time-shift; semantically: held up externally | Red ghost bar at original position |
 | `+hard-block` | Stops sequential chain at this blocked task | — |
 | `+external` | None | Different bar colour (third-party/vendor work) |
 | `+critical` | None | Bold/bright bar (critical path) |
@@ -248,20 +249,20 @@ Modifiers are `+keyword` fields that attach flags to tasks or milestones.
 
 ### Time-Shift Modifiers
 
-`+delayed:X` and `+blocked:X` accept a duration value (`3d`, `2w`, `1bd`, etc.) and push the task's computed start and end forward by that amount. The original (unshifted) dates are preserved as `plannedStart`/`plannedEnd` and rendered as a ghost bar:
+`delayed X` and `blocked X` accept a duration value (`3d`, `2w`, `1bd`, etc.) and push the task's computed start and end forward by that amount. The original (unshifted) dates are preserved and rendered as a ghost bar:
 
-- **`+delayed:X`** — internal slip (team-side). Ghost bar is **orange**.
-- **`+blocked:X`** — held up by an external factor for a known duration. Ghost bar is **red**.
+- **`delayed X`** — internal slip (team-side). Ghost bar is **orange**.
+- **`blocked X`** — held up by an external factor for a known duration. Ghost bar is **red**.
 
 ```
-[~] API integration      | 5d | @alice | +delayed:3d
+[~] API integration      | 5d | @alice | delayed 3d
 // Was planned for Mon; environment issues pushed start to Thu.
 
-[!] SWIFT certification  | 8d | @carol | +blocked:2w
+[~] SWIFT certification  | 8d | @carol | blocked 2w
 // Waiting on SWIFT sandbox credentials — estimated 2-week hold.
 ```
 
-Both modifiers can be applied to the same task; shifts are applied sequentially.
+Both can be applied to the same task; shifts are applied sequentially.
 
 ---
 
@@ -331,7 +332,7 @@ Status         <- " " / "~" / "x" / "!" / "?" / ">" / "_" / "=" / "o"
 
 PipeFields     <- (SP? "|" SP? Field)+
 Field          <- DurationField / AssigneeField / TagField / PriorityField
-               / ProgressField / IdField / AfterField / ModifierField
+               / ProgressField / IdField / AfterField / ModifierField / ShiftField
                / StartDateField / DueDateField / TicketField
 
 DurationField  <- NUMBER ("h" / "bd" / "d" / "w" / "m" / "q")
@@ -341,7 +342,8 @@ PriorityField  <- "!" ("critical" / "high" / "medium" / "low")
 ProgressField  <- "%" [0-9]+ ("%"?)
 IdField        <- "id:" Slug
 AfterField     <- "after:" Slug ("," Slug)* / "after:" Slug ("|" Slug)*
-ModifierField  <- "+" ModifierWord (":" DurationField)?
+ModifierField  <- "+" ModifierWord
+ShiftField     <- ("delayed" / "blocked") SP DurationField
 StartDateField <- ">" ISODate
 DueDateField   <- "<" ISODate
 TicketField    <- "$" [A-Z0-9_-]+

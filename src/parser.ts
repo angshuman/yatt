@@ -159,7 +159,14 @@ function parseFields(segments: string[]): ParsedFields {
       continue;
     }
 
-    // Modifier with + prefix
+    // Time-shift modifiers: "delayed 3d" or "blocked 2w" (canonical space-separated form)
+    const shiftMatch = s.match(/^(delayed|blocked)\s+(\S+)$/);
+    if (shiftMatch) {
+      result.modifiers.push(shiftMatch[1] + ':' + shiftMatch[2]);
+      continue;
+    }
+
+    // Modifier with + prefix (legacy / boolean modifiers: +deadline, +fixed, +delayed:3d, etc.)
     if (RE_MODIFIER.test(s)) {
       result.modifiers.push(s.slice(1));
       continue;

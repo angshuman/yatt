@@ -545,7 +545,11 @@ function serializeTaskLine(t) {
   if (t.startDate) fields.push('>' + t.startDate);
   if (t.dueDate) fields.push('<' + t.dueDate);
   if (t.after) fields.push('after:' + t.after);
-  if (t.modifiers && t.modifiers.length) t.modifiers.forEach(function(m){ fields.push('+'+m); });
+  if (t.modifiers && t.modifiers.length) t.modifiers.forEach(function(m) {
+    var shiftMatch = m.match(/^(delayed|blocked):(.+)$/);
+    if (shiftMatch) { fields.push(shiftMatch[1] + ' ' + shiftMatch[2]); }
+    else { fields.push('+' + m); }
+  });
   return head + (fields.length ? ' | ' + fields.join(' | ') : '');
 }
 
