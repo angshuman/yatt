@@ -481,6 +481,8 @@ Modifiers are `+keyword` fields that attach semantic flags to tasks, milestones,
 |---|---|---|---|
 | `+deadline` | Task, Milestone | If combined with `<due-date`, scheduler emits overrun error if computed end > due date | Red diamond or flag on Gantt |
 | `+fixed` | Task, Milestone | Pins the task to its `>start-date`; no upstream dependency can push it later | Hatched bar; lock icon |
+| `+delayed:X` | Task | Shifts `computedStart`/`computedEnd` forward by X; original dates stored as `plannedStart`/`plannedEnd` | Orange ghost bar at planned position; orange left-edge accent on actual bar |
+| `+blocked:X` | Task | Same time-shift as `+delayed:X` but semantically: task is held up externally for duration X | Red ghost bar at planned position; red left-edge accent on actual bar |
 | `+external` | Task | No scheduling effect | Different bar color (e.g., orange); indicates third-party or vendor dependency |
 | `+waiting` | Task | No scheduling effect | Waiting/clock icon; indicates task is blocked on external response |
 | `+at-risk` | Task | No scheduling effect | Yellow warning icon |
@@ -490,12 +492,21 @@ Modifiers are `+keyword` fields that attach semantic flags to tasks, milestones,
 | `+recurring` | Task | No scheduling effect | Repeat icon; used by renderer when `*` prefix is present |
 | `+milestone` | Task | Treats task as zero-duration milestone | Same as `>>` rendering |
 
-### 14.1 Modifier Combinations
+### 14.1 Time-Shift Modifiers
 
-Multiple modifiers are allowed on one task:
+`+delayed:X` and `+blocked:X` both accept a duration value (same syntax as task durations: `3d`, `2w`, `1bd`, etc.) and push the task's computed start and end forward by that amount. The original (unshifted) dates are preserved as `plannedStart` / `plannedEnd` and rendered as a ghost bar:
+
+- **`+delayed:X`** — the task started/will start later than originally planned (internal slip). Ghost bar is **orange**.
+- **`+blocked:X`** — the task is held up by an external dependency for a known duration. Ghost bar is **red**.
+
+Both modifiers can stack (e.g., `+delayed:3d` and later `+blocked:1w` on the same task; the shifts are applied sequentially).
 
 ```
-[ ] Vendor delivery | 5d | @supplier | +external | +fixed | >2026-03-10 | <2026-03-10
+[~] API integration | 5d | @alice | +delayed:3d
+// Was planned to start Mon; now starts Thu due to env issues.
+
+[~] SWIFT certification | 8d | @carol | +blocked:2w
+// Waiting on SWIFT sandbox credentials; will resume in 2 weeks.
 ```
 
 ---

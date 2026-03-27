@@ -177,6 +177,24 @@ function scheduleTask(task: Task, sequentialAnchor: Date, ctx: ScheduleCtx): voi
     }
   }
 
+  // +blocked:Xw — same time-shift as +delayed but semantic: externally blocked for X time
+  const blockedMod = task.modifiers.find(m => m.startsWith('blocked:'));
+  if (blockedMod) {
+    const blockDur = parseModifierDuration(blockedMod);
+    if (blockDur) {
+      task.plannedStart = task.plannedStart ?? new Date(task.computedStart);
+      task.plannedEnd   = task.plannedEnd ?? (task.computedEnd ? new Date(task.computedEnd) : undefined);
+      const bd = blockDur.unit === 'bd' || ctx.useBusinessDays;
+      task.computedStart = addDuration(task.computedStart, blockDur, bd, ctx.weekStart);
+      if (task.duration) {
+        const durBd = task.duration.unit === 'bd' || ctx.useBusinessDays;
+        task.computedEnd = addDuration(task.computedStart, task.duration, durBd, ctx.weekStart);
+      } else {
+        task.computedEnd = new Date(task.computedStart);
+      }
+    }
+  }
+
   // Schedule subtasks sequentially within the task
   let subAnchor = start;
   for (const sub of task.subtasks) {

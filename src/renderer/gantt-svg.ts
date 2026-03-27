@@ -431,22 +431,23 @@ export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): strin
       }
 
       // +delayed:X — ghost bar at original planned position, orange accent on actual bar
-      const delayedMod = task.modifiers.find(m => m.startsWith('delayed'));
-      if (delayedMod) {
+      const delayedMod = task.modifiers.find(m => m.startsWith('delayed:'));
+      const blockedTimeMod = task.modifiers.find(m => m.startsWith('blocked:'));
+      const shiftMod = delayedMod || blockedTimeMod;
+      if (shiftMod) {
+        const ghostColor = blockedTimeMod ? '#ef4444' : '#f59e0b';
         if (task.plannedStart && task.plannedEnd) {
-          // Real ghost: draw faded bar at the original undelayed position
           const ghostX = dateToX(task.plannedStart);
           const ghostW = Math.max(4, dateToX(task.plannedEnd) - ghostX);
           parts.push(rect(ghostX, barY + barH * 0.15, ghostW, barH * 0.7, {
-            fill: '#f59e0b',
+            fill: ghostColor,
             rx: '3',
-            opacity: '0.25',
+            opacity: '0.2',
             'clip-path': 'url(#chart-clip)',
           }));
-          // Dashed outline on ghost
           parts.push(rect(ghostX, barY + barH * 0.15, ghostW, barH * 0.7, {
             fill: 'none',
-            stroke: '#f59e0b',
+            stroke: ghostColor,
             'stroke-width': '1',
             'stroke-dasharray': '3,2',
             rx: '3',
@@ -454,9 +455,9 @@ export function renderGanttSVG(doc: YattDocument, options?: GanttOptions): strin
             'clip-path': 'url(#chart-clip)',
           }));
         }
-        // Orange left-edge accent on the actual (delayed) bar
+        // Left-edge accent on the actual (shifted) bar
         parts.push(rect(barX, barY, 3, barH, {
-          fill: '#f59e0b',
+          fill: ghostColor,
           rx: '1',
           'clip-path': 'url(#chart-clip)',
         }));
