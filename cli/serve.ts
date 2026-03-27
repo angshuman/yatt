@@ -374,7 +374,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 
 /* ── yatt control (embedded per-block) ── */
 .yatt-ctrl { margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; overflow: auto;
-  display: flex; flex-direction: column; resize: vertical; min-height: 220px; }
+  display: flex; flex-direction: column; resize: vertical; min-height: 400px; }
 .yatt-ctrl-bar { display: flex; gap: 2px; padding: 4px 8px; flex: 0 0 auto;
   border-bottom: 1px solid var(--border); background: var(--panel2); }
 .yatt-ctrl-tab { background: none; border: none; cursor: pointer; padding: 3px 10px;
