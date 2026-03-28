@@ -7,17 +7,32 @@ import type { Task, ParallelBlock, DocumentItem } from '../src/types.js';
 
 // ── Arg parsing ───────────────────────────────────────────────────────────────
 
-function parseArgs(argv: string[]): { folder: string; port: number } {
+function parseArgs(argv: string[]): { folder: string; port: number; noOpen: boolean } {
   let folder = process.cwd();
   let port = 3000;
+  let noOpen = false;
   for (let i = 0; i < argv.length; i++) {
     if ((argv[i] === '--port' || argv[i] === '-p') && argv[i + 1]) {
       port = parseInt(argv[++i], 10);
+    } else if (argv[i] === '--no-open') {
+      noOpen = true;
+    } else if (argv[i] === '--help' || argv[i] === '-h') {
+      process.stdout.write([
+        '',
+        'yatt [folder] [options]',
+        '',
+        '  folder          Directory to watch (default: current directory)',
+        '  --port, -p N    Port to listen on (default: 3000, auto-increments if busy)',
+        '  --no-open       Do not open the browser automatically',
+        '  --help, -h      Show this help',
+        '',
+      ].join('\n'));
+      process.exit(0);
     } else if (!argv[i].startsWith('-')) {
       folder = path.resolve(argv[i]);
     }
   }
-  return { folder, port };
+  return { folder, port, noOpen };
 }
 
 // ── File walker ───────────────────────────────────────────────────────────────
@@ -1833,7 +1848,7 @@ async function findFreePort(start: number): Promise<number> {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-const { folder, port: preferredPort } = parseArgs(process.argv.slice(2));
+const { folder, port: preferredPort, noOpen } = parseArgs(process.argv.slice(2));
 
 if (!fs.existsSync(folder)) {
   process.stderr.write(`Error: folder not found: ${folder}\n`);
@@ -1853,11 +1868,10 @@ if (!fs.existsSync(folder)) {
   const server = createServer(folder, port, sse);
 
   server.listen(port, '127.0.0.1', () => {
-    process.stdout.write(`\nYATT Viewer\n`);
-    process.stdout.write(`  Folder : ${folder}\n`);
-    process.stdout.write(`\n  Open: ${addr}\n\n`);
-    process.stdout.write(`Press Ctrl+C to stop.\n\n`);
-    openBrowser(addr);
+    process.stdout.write(`\nYATT  ·  ${folder}\n`);
+    process.stdout.write(`\n  → ${addr}\n\n`);
+    process.stdout.write(`Ctrl+C to stop.\n\n`);
+    if (!noOpen) openBrowser(addr);
   });
 
   server.on('error', (err: any) => {

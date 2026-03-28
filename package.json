@@ -1,7 +1,7 @@
 {
   "name": "yatt",
   "version": "0.1.0",
-  "description": "Yet Another Task Tracker — plain-text Gantt charts in Markdown",
+  "description": "Yet Another Task Tracker — plain-text Markdown task tracking with Gantt, Kanban, and git integration",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,8 +10,28 @@
   },
   "files": [
     "dist/",
-    "src/"
+    "README.md",
+    "SPEC.md"
   ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "task-tracker",
+    "gantt",
+    "kanban",
+    "markdown",
+    "plaintext",
+    "git",
+    "project-management",
+    "cli"
+  ],
+  "homepage": "https://github.com/angshuman/yatt#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/angshuman/yatt.git"
+  },
+  "license": "MIT",
   "scripts": {
     "build": "tsc && esbuild cli/serve.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist/cli/serve.js \"--banner:js=#!/usr/bin/env node\"",
     "start": "node dist/cli/serve.js .",
