@@ -22,7 +22,9 @@ Most task trackers store data in a database you can't read or diff. YATT flips t
 
 ## What it looks like
 
-![YATT timeline view](./examples/showcase.svg)
+![YATT — write, visualize, edit](./examples/animated-showcase.svg)
+
+> *3 slides: write plain text → timeline view → kanban board. Cycles automatically.*
 
 ```yatt
 title: Product v2 Launch
