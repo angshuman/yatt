@@ -22,6 +22,8 @@ Most task trackers store data in a database you can't read or diff. YATT flips t
 
 ## What it looks like
 
+![YATT timeline view](./examples/showcase.svg)
+
 ```yatt
 title: Product v2 Launch
 start: 2026-01-05
