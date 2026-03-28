@@ -16,7 +16,7 @@ Most task trackers store data in a database you can't read or diff. YATT flips t
 - **No lock-in** — your tasks are plain text. Open them in Vim, VS Code, Obsidian, or cat them in a terminal.
 - **Team-friendly** — pull requests *are* planning reviews. Comment on task lines, suggest changes, approve.
 - **Offline-first** — nothing to sync. The file is always up to date.
-- **Lightweight server** — run `yatt serve` to get a live Gantt, Kanban, and People view. Commit and push without leaving the browser.
+- **Lightweight server** — run `yatt` in any folder to get a live Gantt, Kanban, and People view. Commit and push without leaving the browser.
 
 ---
 
@@ -53,20 +53,35 @@ Tasks render as a minimal **line + circle** timeline — a filled dot at start, 
 
 ---
 
-## Quick start
+## Install
 
 ```bash
-# Serve a folder of Markdown files
-npx yatt serve ./docs
+npm install -g yatt-md
+```
 
-# Or install globally
-npm install -g yatt
-yatt serve .
+> The package is `yatt-md` on npm, but the command is just **`yatt`**.
+
+---
+
+## Usage
+
+```bash
+yatt                  # open current folder in the browser
+yatt ./my-project     # open a specific folder
+yatt --port 4000      # use a custom port
+yatt --no-open        # start server without opening the browser
+yatt --help           # show all options
 ```
 
 Open `http://localhost:3000`. Pick any `.md` file from the sidebar. YATT finds all ` ```yatt ` blocks in the file and renders them.
 
 The **Edit** tab lets you write raw YATT syntax. Changes save automatically and the view updates live.
+
+You can also try without installing:
+
+```bash
+npx yatt-md
+```
 
 ---
 
@@ -109,7 +124,7 @@ end: name                                  ← parallel block end
 ## The server
 
 ```bash
-yatt serve [folder] [--port 3000]
+yatt [folder] [--port 3000]
 ```
 
 Four views, switchable by tab:
