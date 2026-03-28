@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "yatt": "./dist/cli/serve.js"
+    "yatt": "dist/cli/serve.js"
   },
   "files": [
     "dist/",
@@ -29,7 +29,7 @@
   "homepage": "https://github.com/angshuman/yatt#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/angshuman/yatt.git"
+    "url": "git+https://github.com/angshuman/yatt.git"
   },
   "license": "MIT",
   "scripts": {
