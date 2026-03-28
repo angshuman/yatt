@@ -1,5 +1,5 @@
 {
-  "name": "yatt",
+  "name": "yatt-md",
   "version": "0.1.0",
   "description": "Yet Another Task Tracker — plain-text Markdown task tracking with Gantt, Kanban, and git integration",
   "type": "module",
