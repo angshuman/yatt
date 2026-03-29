@@ -1275,6 +1275,8 @@ function setView(v) {
   if (state.saveTimer && v !== 'markdown') {
     clearTimeout(state.saveTimer); state.saveTimer = null; doSave();
   }
+  // Always clear cached blocks when switching to view so edits are reflected
+  if (v === 'view') state.blocks = null;
   state.view = v;
   var url = new URL(window.location.href);
   url.searchParams.set('v', v);
@@ -1438,23 +1440,23 @@ var YATT_TEMPLATE = [
   'title: My Sprint',
   'start: ' + new Date().toISOString().slice(0, 10),
   '',
-  '[x] Planning | id:plan | 2d | @me | #setup',
+  '[x] Planning | id:plan | 2d | @me',
   '// Define goals, assign owners, confirm timeline.',
   '',
   'parallel: backend | after:plan',
-  '[~] API design     | id:api  | 2d | @me | #dev | %80',
+  '[~] API design     | id:api | 2d | @me | %80',
   '// Design the REST endpoints and data models.',
-  '[ ] Implementation | id:impl | 3d | @me | #dev',
-  '[ ] Unit tests     | 1d | @me | #dev',
+  '[ ] Implementation | 3d | @me',
+  '[ ] Unit tests     | 1d | @me',
   'end: backend',
   '',
   'parallel: design | after:plan',
-  '[done] Wireframes    | 2d | @me | #design | %100',
-  '[~]   Visual design  | id:visual | 2d | @me | #design | %60',
-  '[ ]   Assets & icons | 1d | @me | #design',
+  '[done] Wireframes   | 2d | @me | %100',
+  '[~]   Visual design | 2d | @me | %60',
+  '[ ]   Assets        | 1d | @me',
   'end: design',
   '',
-  '[ ] Integration & QA | id:qa | 2d | @me | after:backend,design | #qa',
+  '[ ] Integration & QA | id:qa | 2d | @me | after:backend,design',
   '>> Sprint complete | after:qa | +deadline',
 ].join('\\n');
 
