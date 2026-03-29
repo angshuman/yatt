@@ -1438,17 +1438,24 @@ var YATT_TEMPLATE = [
   'title: My Sprint',
   'start: ' + new Date().toISOString().slice(0, 10),
   '',
-  '[x] Setup & planning | 2d | @me | #setup',
+  '[x] Planning | id:plan | 2d | @me | #setup',
   '// Define goals, assign owners, confirm timeline.',
   '',
-  '[~] First feature | 4d | @me | #dev | %40',
-  '// Core implementation work.',
-  '    . Backend API  | 2d',
-  '    . Frontend UI  | 2d',
+  'parallel: backend | after:plan',
+  '[~] API design     | id:api  | 2d | @me | #dev | %80',
+  '// Design the REST endpoints and data models.',
+  '[ ] Implementation | id:impl | 3d | @me | #dev',
+  '[ ] Unit tests     | 1d | @me | #dev',
+  'end: backend',
   '',
-  '[ ] Testing & review | 2d | @me | after:feature | #qa',
+  'parallel: design | after:plan',
+  '[done] Wireframes    | 2d | @me | #design | %100',
+  '[~]   Visual design  | id:visual | 2d | @me | #design | %60',
+  '[ ]   Assets & icons | 1d | @me | #design',
+  'end: design',
   '',
-  '>> Ship it | after:* | +deadline',
+  '[ ] Integration & QA | id:qa | 2d | @me | after:backend,design | #qa',
+  '>> Sprint complete | after:qa | +deadline',
 ].join('\\n');
 
 function showEmptyState() {
@@ -1490,9 +1497,19 @@ function createFile(name) {
 
 // ── Insert YATT block into markdown editor ─────────────────────────────────────
 
-var INSERT_YATT_TEMPLATE = '\`\`\`yatt\\ntitle: Tasks\\nstart: ' +
-  new Date().toISOString().slice(0, 10) +
-  '\\n\\n[ ] First task | 3d | @me\\n[ ] Second task | 2d | @me | after:first\\n>> Done | after:*\\n\`\`\`';
+var INSERT_YATT_TEMPLATE = '\`\`\`yatt\\n' +
+  'title: Tasks\\n' +
+  'start: ' + new Date().toISOString().slice(0, 10) + '\\n\\n' +
+  'parallel: track-a\\n' +
+  '[ ] Task A1 | id:a1 | 2d | @me\\n' +
+  '[ ] Task A2 | 2d | @me\\n' +
+  'end: track-a\\n\\n' +
+  'parallel: track-b\\n' +
+  '[ ] Task B1 | id:b1 | 2d | @me\\n' +
+  '[ ] Task B2 | 2d | @me\\n' +
+  'end: track-b\\n\\n' +
+  '>> Complete | after:track-a,track-b | +deadline\\n' +
+  '\`\`\`';
 
 function insertYattBlock() {
   var ta = document.getElementById('editor');
