@@ -576,6 +576,42 @@ html, body { height: 100%; background: var(--bg); color: var(--text);
 .avatar-lg { width: 32px; height: 32px; font-size: 11px; }
 .loading { color: var(--muted); padding: 40px; text-align: center; font-size: 13px; }
 .err { color: var(--red) !important; }
+
+/* ── empty state ── */
+#empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; gap: 14px; padding: 40px; text-align: center; }
+#empty-state.hidden { display: none; }
+.empty-icon { font-size: 36px; line-height: 1; opacity: 0.5; }
+.empty-title { font-size: 16px; font-weight: 600; color: var(--text); }
+.empty-sub { font-size: 12px; color: var(--muted); max-width: 320px; line-height: 1.5; }
+.empty-form { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+.empty-form input { background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+  color: var(--text); padding: 6px 10px; font-size: 12px; font-family: inherit;
+  outline: none; width: 180px; transition: border-color 0.1s; }
+.empty-form input:focus { border-color: var(--accent); }
+.empty-btn { background: var(--accent); color: #fff; border: none; border-radius: 5px;
+  padding: 6px 14px; font-size: 12px; font-family: inherit; cursor: pointer;
+  font-weight: 500; white-space: nowrap; }
+.empty-btn:hover { opacity: 0.85; }
+
+/* ── sidebar new-file button ── */
+#sidebar-new-btn { display: flex; align-items: center; justify-content: center;
+  gap: 5px; width: calc(100% - 16px); margin: 8px 8px 0; padding: 5px 0;
+  background: none; border: 1px dashed var(--border); border-radius: 5px;
+  color: var(--muted); font-size: 11px; font-family: inherit; cursor: pointer;
+  transition: color 0.1s, border-color 0.1s; }
+#sidebar-new-btn:hover { color: var(--accent-hi); border-color: var(--accent); }
+
+/* ── markdown editor toolbar ── */
+#md-toolbar { display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+  border-bottom: 1px solid var(--border); background: var(--panel); flex-shrink: 0; }
+.md-tool-btn { background: var(--panel2); border: 1px solid var(--border); color: var(--muted);
+  border-radius: 4px; padding: 3px 10px; font-size: 11px; font-family: inherit;
+  cursor: pointer; transition: color 0.1s, border-color 0.1s; }
+.md-tool-btn:hover { color: var(--accent-hi); border-color: var(--accent); }
+#view-markdown { flex-direction: column; }
+#view-markdown[hidden] { display: none !important; }
+#view-markdown:not([hidden]) { display: flex; }
 `;
 
 const JS = `
@@ -1386,10 +1422,7 @@ window.addEventListener('DOMContentLoaded', function() {
   loadFileList().then(function(files) {
     if (initial && files.includes(initial)) loadFile(initial);
     else if (files.length > 0) navigateTo(files[0]);
-    else {
-      var c = document.getElementById('doc-content');
-      if (c) c.innerHTML = '<div class="loading">No .md files found.</div>';
-    }
+    else showEmptyState();
   });
 
   connectSse();
@@ -1399,7 +1432,92 @@ window.addEventListener('popstate', function(e) {
   if (e.state && e.state.p) loadFile(e.state.p);
 });
 
-// ── Git integration ────────────────────────────────────────────────────────────
+// ── New file / empty state ─────────────────────────────────────────────────────
+
+var YATT_TEMPLATE = [
+  'title: My Sprint',
+  'start: ' + new Date().toISOString().slice(0, 10),
+  '',
+  '[x] Setup & planning | 2d | @me | #setup',
+  '// Define goals, assign owners, confirm timeline.',
+  '',
+  '[~] First feature | 4d | @me | #dev | %40',
+  '// Core implementation work.',
+  '    . Backend API  | 2d',
+  '    . Frontend UI  | 2d',
+  '',
+  '[ ] Testing & review | 2d | @me | after:feature | #qa',
+  '',
+  '>> Ship it | after:* | +deadline',
+].join('\\n');
+
+function showEmptyState() {
+  var es = document.getElementById('empty-state');
+  if (es) es.classList.remove('hidden');
+}
+
+function hideEmptyState() {
+  var es = document.getElementById('empty-state');
+  if (es) es.classList.add('hidden');
+}
+
+function promptNewFile() {
+  var name = window.prompt('New file name:', 'tasks.md');
+  if (!name) return;
+  if (!name.endsWith('.md')) name = name + '.md';
+  createFile(name);
+}
+
+function doCreateFile() {
+  var inp = document.getElementById('empty-filename');
+  var name = (inp ? inp.value.trim() : '') || 'tasks.md';
+  if (!name.endsWith('.md')) name = name + '.md';
+  createFile(name);
+}
+
+function createFile(name) {
+  var content = '# ' + name.replace(/\\.md$/, '') + '\\n\\n\`\`\`yatt\\n' + YATT_TEMPLATE + '\\n\`\`\`\\n';
+  fetch('/api/create-file?name=' + encodeURIComponent(name), {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    body: content,
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.error) { alert('Error: ' + d.error); return; }
+    hideEmptyState();
+    loadFileList().then(function() { navigateTo(d.path); });
+  }).catch(function(e) { alert('Error: ' + e.message); });
+}
+
+// ── Insert YATT block into markdown editor ─────────────────────────────────────
+
+var INSERT_YATT_TEMPLATE = '\`\`\`yatt\\ntitle: Tasks\\nstart: ' +
+  new Date().toISOString().slice(0, 10) +
+  '\\n\\n[ ] First task | 3d | @me\\n[ ] Second task | 2d | @me | after:first\\n>> Done | after:*\\n\`\`\`';
+
+function insertYattBlock() {
+  var ta = document.getElementById('editor');
+  if (!ta) return;
+  var start = ta.selectionStart, end = ta.selectionEnd;
+  var val = ta.value;
+  // Insert on its own line(s)
+  var before = val.slice(0, start);
+  var after = val.slice(end);
+  var prefix = (before.length > 0 && !before.endsWith('\\n')) ? '\\n\\n' : '';
+  var suffix = (after.length > 0 && !after.startsWith('\\n')) ? '\\n' : '';
+  var inserted = prefix + INSERT_YATT_TEMPLATE + suffix;
+  ta.value = before + inserted + after;
+  // Place cursor inside the block, after title line
+  var cursorPos = before.length + prefix.length + INSERT_YATT_TEMPLATE.indexOf('[ ]');
+  ta.selectionStart = ta.selectionEnd = cursorPos;
+  ta.focus();
+  // Trigger save
+  state.source = ta.value;
+  if (state.saveTimer) clearTimeout(state.saveTimer);
+  setSaveStatus('unsaved', 'Unsaved');
+  state.saveTimer = setTimeout(function() { state.saveTimer = null; doSave(); }, 1200);
+}
+
+
 
 var gitState = { available: false, dirty: false, ahead: 0, behind: 0, branch: '', hasRemote: false };
 var gitBusy = false;
@@ -1539,10 +1657,30 @@ function buildShellHtml(rootDir: string): string {
     </div>
   </header>
   <div id="workspace">
-    <nav id="sidebar"><div id="sidebar-inner"></div></nav>
+    <nav id="sidebar">
+      <button id="sidebar-new-btn" onclick="promptNewFile()">＋ New file</button>
+      <div id="sidebar-inner"></div>
+    </nav>
     <main id="main">
-      <div id="view-view" class="view-panel"><div id="doc-content"></div></div>
-      <div id="view-markdown" class="view-panel" hidden><textarea id="editor" spellcheck="false"></textarea></div>
+      <div id="view-view" class="view-panel">
+        <div id="doc-content"></div>
+        <div id="empty-state" class="hidden">
+          <div class="empty-icon">📋</div>
+          <div class="empty-title">No task files yet</div>
+          <div class="empty-sub">Create a new Markdown file with a starter template to get going.</div>
+          <div class="empty-form">
+            <input id="empty-filename" type="text" value="tasks.md" placeholder="filename.md" spellcheck="false"
+              onkeydown="if(event.key==='Enter')doCreateFile()">
+            <button class="empty-btn" onclick="doCreateFile()">Create file</button>
+          </div>
+        </div>
+      </div>
+      <div id="view-markdown" class="view-panel" hidden>
+        <div id="md-toolbar">
+          <button class="md-tool-btn" onclick="insertYattBlock()" title="Insert a YATT task block at cursor">＋ Insert YATT block</button>
+        </div>
+        <textarea id="editor" spellcheck="false"></textarea>
+      </div>
     </main>
   </div>
 </div>
@@ -1718,6 +1856,34 @@ function createServer(rootDir: string, port: number, sse: SseManager): http.Serv
       req.on('error', (e: any) => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: e.message }));
+      });
+      return;
+    }
+
+    if (pathname === '/api/create-file' && req.method === 'POST') {
+      const rawName = parsed.searchParams.get('name') || 'tasks.md';
+      // sanitize: basename only, must end in .md
+      const safeName = path.basename(rawName).replace(/[^a-zA-Z0-9_\-. ]/g, '_');
+      const fileName = safeName.endsWith('.md') ? safeName : safeName + '.md';
+      const absPath = path.join(rootDir, fileName);
+      const relPath = fileName;
+      const chunks: Buffer[] = [];
+      req.on('data', (c: Buffer) => chunks.push(c));
+      req.on('end', () => {
+        try {
+          if (fs.existsSync(absPath)) {
+            res.writeHead(409, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'File already exists: ' + fileName }));
+            return;
+          }
+          fs.writeFileSync(absPath, Buffer.concat(chunks).toString('utf8'), 'utf8');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ path: relPath }));
+          sse.broadcast('reload');
+        } catch (e: any) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: e.message }));
+        }
       });
       return;
     }
