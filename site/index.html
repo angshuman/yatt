@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>YATT — Gantt Editor</title>
+  <title>YATT — Editor</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github-dark.min.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -321,21 +321,79 @@
       font-size: inherit;
     }
 
-    /* ─── YATT blocks ─────────────────────────────────────────── */
+    /* ─── YATT controls (tabbed per-block) ───────────────────── */
 
-    .yatt-block {
+    .yatt-ctrl {
       margin: 20px 0;
-      background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 8px;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 420px;
+      resize: vertical;
     }
 
-    .yatt-block svg {
-      max-width: 100%;
-      display: block;
+    .yatt-ctrl-bar {
+      display: flex;
+      gap: 2px;
+      padding: 4px 8px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
 
+    .yatt-ctrl-tab {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-radius: 3px;
+      font-family: inherit;
+      transition: color 0.1s, background 0.1s;
+    }
+
+    .yatt-ctrl-tab:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+    .yatt-ctrl-tab.active {
+      color: var(--accent-hi);
+      background: rgba(59,130,246,0.12);
+    }
+
+    .yatt-ctrl-body {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+    }
+
+    .yatt-ctrl-panel { display: none; }
+
+    .yatt-ctrl-panel.active {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .yatt-ctrl-panel[data-panel="timeline"] svg { max-width: 100%; height: auto; display: block; }
+
+    /* inline error banner inside ctrl */
+    .yatt-ctrl-errors {
+      background: rgba(239,68,68,0.08);
+      border-bottom: 1px solid rgba(239,68,68,0.3);
+      padding: 6px 12px;
+      font-size: 11px;
+      color: var(--red);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      flex-shrink: 0;
+    }
+
+    /* standalone error block (load failure) */
     .yatt-errors {
       background: rgba(239,68,68,0.08);
       border: 1px solid rgba(239,68,68,0.3);
@@ -353,6 +411,138 @@
     }
 
     .yatt-errors p + p { margin-top: 4px; }
+
+    /* ─── Kanban ──────────────────────────────────────────────── */
+
+    .ctrl-kanban {
+      display: flex;
+      gap: 10px;
+      padding: 12px;
+      overflow-x: auto;
+      align-items: flex-start;
+    }
+
+    .k-col {
+      flex: 0 0 200px;
+      background: var(--bg);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      max-height: 360px;
+    }
+
+    .k-col.empty { flex: 0 0 32px; }
+    .k-col.empty .k-col-header,
+    .k-col.empty .k-cards { display: none; }
+    .k-col-empty-label { display: none; }
+    .k-col.empty .k-col-empty-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 8px;
+      padding: 10px 0;
+    }
+
+    .k-col-empty-line { width: 3px; border-radius: 2px; flex-shrink: 0; min-height: 24px; flex: 1; max-height: 60px; }
+    .k-col-empty-title {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .k-col-header {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .k-col-line { width: 3px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+    .k-col-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; flex: 1; }
+    .k-col-count { font-size: 11px; color: var(--text-muted); }
+
+    .k-cards {
+      overflow-y: auto;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .k-cards::-webkit-scrollbar { width: 3px; }
+    .k-cards::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .k-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 8px 10px;
+    }
+
+    .k-card-name { font-size: 11px; color: var(--text); line-height: 1.4; margin-bottom: 3px; }
+
+    .k-card-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+
+    .k-progress { height: 2px; background: var(--border); border-radius: 1px; margin-top: 6px; overflow: hidden; }
+    .k-progress-fill { height: 100%; border-radius: 1px; background: var(--accent); }
+
+    .k-priority { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: rgba(255,255,255,0.06); color: var(--text-muted); }
+    .k-priority[data-p="critical"] { color: var(--red); }
+    .k-priority[data-p="high"] { color: var(--accent-hi); }
+
+    /* ─── People ──────────────────────────────────────────────── */
+
+    .ctrl-people { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+    .person-card { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+
+    .person-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .person-name { font-size: 12px; font-weight: 600; }
+    .person-count { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    .ptask-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ptask-row:last-child { border-bottom: none; }
+    .ptask-name { font-size: 12px; flex: 1; }
+    .ptask-prog { font-size: 10px; color: var(--text-muted); font-family: ui-monospace, monospace; }
+
+    /* ─── Shared atoms ────────────────────────────────────────── */
+
+    .sdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+    .avatar {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--border);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+
+    .avatar-lg { width: 32px; height: 32px; font-size: 11px; }
 
     /* ─── View modes ──────────────────────────────────────────── */
 
@@ -412,7 +602,7 @@
 
 <div id="app">
   <header id="toolbar">
-    <div class="logo">YATT<span>Gantt Editor</span></div>
+    <div class="logo">YATT<span>Editor</span></div>
     <div class="toolbar-center">
       <select id="examples-select" title="Load an example">
         <option value="quick-start">Quick start</option>
@@ -451,6 +641,20 @@
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/highlight.min.js"></script>
 <script src="./yatt.bundle.js"></script>
+
+<!-- Global helpers (called from inline onclick in yatt ctrl tabs) -->
+<script>
+function yattCtrlSetView(ctrlId, panel) {
+  var ctrl = document.getElementById(ctrlId);
+  if (!ctrl) return;
+  ctrl.querySelectorAll('.yatt-ctrl-tab').forEach(function(btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-panel') === panel);
+  });
+  ctrl.querySelectorAll('.yatt-ctrl-panel').forEach(function(p) {
+    p.classList.toggle('active', p.getAttribute('data-panel') === panel);
+  });
+}
+</script>
 
 <script>
 (function () {
@@ -990,6 +1194,156 @@ end: ff-and-e
     return str.replace(/"/g, '&quot;');
   }
 
+  // ─── YATT control helpers ────────────────────────────────────────────────────
+
+  let yattCtrlSeq = 0;
+
+  const STATUS_COLOR = {
+    'new': '#7d8590', 'active': '#388bfd', 'done': '#3fb950', 'blocked': '#f85149',
+    'at-risk': '#f0883e', 'deferred': '#bc8cff', 'cancelled': '#30363d',
+    'review': '#d29922', 'paused': '#484f58',
+  };
+
+  const STATUS_LABEL = {
+    'new': 'New', 'active': 'Active', 'done': 'Done', 'blocked': 'Blocked',
+    'at-risk': 'At Risk', 'deferred': 'Deferred', 'cancelled': 'Cancelled',
+    'review': 'Review', 'paused': 'Paused',
+  };
+
+  const KANBAN_COLS = ['new', 'active', 'review', 'blocked', 'paused', 'done', 'cancelled'];
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function sdotHtml(status) {
+    const c = STATUS_COLOR[status] || '#7d8590';
+    return `<span class="sdot" style="background:${c}" title="${esc(status)}"></span>`;
+  }
+
+  function avatarHtml(name, large) {
+    const clean = name.replace(/[^a-zA-Z]/g, '');
+    const init = (clean.slice(0, 2) || name.slice(0, 2)).toUpperCase();
+    return `<span class="${large ? 'avatar avatar-lg' : 'avatar'}" title="@${esc(name)}">${esc(init)}</span>`;
+  }
+
+  function extractTasks(items, depth) {
+    const tasks = [];
+    depth = depth || 0;
+    for (const item of (items || [])) {
+      if (item.type === 'task') {
+        const t = item;
+        const info = {
+          name: t.name,
+          status: t.status,
+          assignees: t.assignees || [],
+          tags: t.tags || [],
+          priority: t.priority,
+          progress: t.progress,
+          modifiers: t.modifiers || [],
+          depth,
+          line: t.line,
+        };
+        tasks.push(info);
+        if (t.subtasks && t.subtasks.length) {
+          tasks.push(...extractTasks(t.subtasks, depth + 1));
+        }
+      } else if (item.type === 'parallel') {
+        tasks.push(...extractTasks(item.items, depth));
+      }
+    }
+    return tasks;
+  }
+
+  function buildKanbanHtml(tasks) {
+    const byStatus = {};
+    KANBAN_COLS.forEach(s => { byStatus[s] = []; });
+    for (const t of (tasks || [])) {
+      const s = t.status || 'new';
+      if (!byStatus[s]) byStatus[s] = [];
+      byStatus[s].push(t);
+    }
+    let html = '';
+    for (const status of KANBAN_COLS) {
+      const cards = byStatus[status] || [];
+      const color = STATUS_COLOR[status] || '#7d8590';
+      const label = STATUS_LABEL[status] || status;
+      const isEmpty = cards.length === 0;
+      html += `<div class="k-col${isEmpty ? ' empty' : ''}" data-status="${esc(status)}">`;
+      if (isEmpty) {
+        html += `<div class="k-col-empty-label">` +
+          `<span class="k-col-empty-line" style="background:${color}"></span>` +
+          `<span class="k-col-empty-title" style="color:${color}">${esc(label)}</span>` +
+          `</div>`;
+      } else {
+        html += `<div class="k-col-header">` +
+          `<span class="k-col-line" style="background:${color}"></span>` +
+          `<span class="k-col-title">${esc(label)}</span>` +
+          `<span class="k-col-count">${cards.length}</span>` +
+          `</div>`;
+      }
+      html += `<div class="k-cards">`;
+      for (const t of cards) {
+        const indent = t.depth > 0 ? `padding-left:${8 + t.depth * 10}px;` : '';
+        html += `<div class="k-card" style="${indent}">`;
+        html += `<div class="k-card-name">${esc(t.name)}</div>`;
+        html += `<div class="k-card-meta">`;
+        if (t.assignees && t.assignees.length) {
+          t.assignees.slice(0, 3).forEach(a => { html += avatarHtml(a, false); });
+        }
+        if (t.priority && t.priority !== 'normal') {
+          html += `<span class="k-priority" data-p="${esc(t.priority)}">${esc(t.priority)}</span>`;
+        }
+        html += `</div>`;
+        if (t.progress != null) {
+          html += `<div class="k-progress"><div class="k-progress-fill" style="width:${t.progress}%"></div></div>`;
+        }
+        html += `</div>`;
+      }
+      html += `</div></div>`;
+    }
+    return html || '<div style="padding:20px;color:var(--text-muted);font-size:13px;">No tasks.</div>';
+  }
+
+  function buildPeopleHtml(tasks) {
+    const byPerson = {};
+    for (const t of (tasks || [])) {
+      const people = t.assignees && t.assignees.length ? t.assignees : ['(unassigned)'];
+      for (const p of people) {
+        if (!byPerson[p]) byPerson[p] = [];
+        byPerson[p].push(t);
+      }
+    }
+    const names = Object.keys(byPerson).sort((a, b) => {
+      if (a === '(unassigned)') return 1;
+      if (b === '(unassigned)') return -1;
+      return a.localeCompare(b);
+    });
+    if (!names.length) return '<div style="padding:20px;color:var(--text-muted);font-size:13px;">No tasks.</div>';
+    let html = '';
+    for (const name of names) {
+      const list = byPerson[name];
+      const isU = name === '(unassigned)';
+      html += `<div class="person-card"><div class="person-header">`;
+      if (!isU) html += avatarHtml(name, true);
+      html += `<div><div class="person-name">${esc(isU ? 'Unassigned' : '@' + name)}</div>`;
+      html += `<div class="person-count">${list.length} task${list.length === 1 ? '' : 's'}</div></div></div>`;
+      for (const t of list) {
+        html += `<div class="ptask-row">${sdotHtml(t.status)}`;
+        html += `<span class="ptask-name">${esc(t.name)}</span>`;
+        if (t.priority && t.priority !== 'normal') {
+          html += `<span style="font-size:10px;color:var(--text-muted)">${esc(t.priority)}</span>`;
+        }
+        if (t.progress != null) {
+          html += `<span class="ptask-prog">${t.progress}%</span>`;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+    }
+    return html;
+  }
+
   // ─── YATT rendering ──────────────────────────────────────────────────────────
 
   function renderYattBlock(code) {
@@ -1000,43 +1354,57 @@ end: ff-and-e
       return `<div class="yatt-errors"><p>YattLib not loaded — make sure yatt.bundle.js is present.</p></div>`;
     }
 
+    const ctrlId = `yatt-ctrl-${++yattCtrlSeq}`;
+
     try {
+      // Render gantt SVG
       const result = yatt.render(code, 'gantt');
 
-      // result may be a string (SVG) or an object with { svg, errors } depending on build
+      let ganttHtml = '';
+      let errors = [];
+
       if (typeof result === 'string') {
         if (result.trim().startsWith('<svg') || result.trim().startsWith('<?xml')) {
-          return `<div class="yatt-block">${result}</div>`;
+          ganttHtml = result;
+        } else {
+          errors.push(result);
         }
-        // Treat as error message
-        errorCount++;
-        return `<div class="yatt-errors"><p>${escapeHtml(result)}</p></div>`;
+      } else if (result && typeof result === 'object') {
+        errors = result.errors ? [].concat(result.errors) : [];
+        const svg = result.html || result.svg || result.output || '';
+        if (svg.trim().startsWith('<svg') || svg.trim().startsWith('<?xml')) {
+          ganttHtml = svg;
+        }
       }
 
-      if (result && typeof result === 'object') {
-        const errors = result.errors || result.error ? [].concat(result.errors || result.error) : [];
-        const svg = result.svg || result.output || result.html || '';
+      errorCount += errors.length;
 
-        let html = '';
-        if (svg && (svg.trim().startsWith('<svg') || svg.trim().startsWith('<?xml'))) {
-          html += `<div class="yatt-block">${svg}</div>`;
+      // Extract tasks for kanban / people panels
+      let tasks = [];
+      try {
+        if (yatt.parse && yatt.schedule) {
+          const { doc } = yatt.parse(code);
+          tasks = extractTasks(doc.items);
         }
-        if (errors && errors.length) {
-          errorCount += errors.length;
-          const errorLines = errors
-            .map(e => `<p>${escapeHtml(typeof e === 'string' ? e : (e.message || String(e)))}</p>`)
-            .join('');
-          html += `<div class="yatt-errors">${errorLines}</div>`;
-        }
-        if (!html) {
-          // Nothing came back — treat as empty result
-          return `<div class="yatt-block"><p style="color:var(--text-muted);padding:16px;font-size:13px;">(no output)</p></div>`;
-        }
-        return html;
-      }
+      } catch (e) { /* non-fatal */ }
 
-      errorCount++;
-      return `<div class="yatt-errors"><p>Unexpected result from YattLib.render()</p></div>`;
+      const errBanner = errors.length
+        ? `<div class="yatt-ctrl-errors">${errors.map(e => esc(typeof e === 'string' ? e : (e.message || String(e)))).join('<br>')}</div>`
+        : '';
+
+      const timelinePanel = ganttHtml
+        ? `<div class="yatt-ctrl-panel active" data-panel="timeline">${ganttHtml}</div>`
+        : `<div class="yatt-ctrl-panel active" data-panel="timeline"><div style="padding:20px;color:var(--text-muted);font-size:13px;">(no output)</div></div>`;
+
+      const kanbanPanel = `<div class="yatt-ctrl-panel" data-panel="kanban"><div class="ctrl-kanban">${buildKanbanHtml(tasks)}</div></div>`;
+      const peoplePanel = `<div class="yatt-ctrl-panel" data-panel="people"><div class="ctrl-people">${buildPeopleHtml(tasks)}</div></div>`;
+
+      const tabs = ['timeline', 'kanban', 'people'].map((p, i) =>
+        `<button class="yatt-ctrl-tab${i === 0 ? ' active' : ''}" data-panel="${p}" onclick="yattCtrlSetView('${ctrlId}','${p}')">${p.charAt(0).toUpperCase() + p.slice(1)}</button>`
+      ).join('');
+
+      return `<div class="yatt-ctrl" id="${ctrlId}">${errBanner}<div class="yatt-ctrl-bar">${tabs}</div><div class="yatt-ctrl-body">${timelinePanel}${kanbanPanel}${peoplePanel}</div></div>`;
+
     } catch (err) {
       errorCount++;
       const msg = err && err.message ? err.message : String(err);
@@ -1048,6 +1416,7 @@ end: ff-and-e
 
   function renderPreview() {
     errorCount = 0;
+    yattCtrlSeq = 0;
 
     const content = editor.value;
     let html = '';
