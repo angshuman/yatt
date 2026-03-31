@@ -731,6 +731,8 @@
     .yatt-ctrl .k-card[data-line], .yatt-ctrl .ptask-row[data-line] { cursor: pointer; }
     .yatt-ctrl .k-card[data-line]:hover { border-color: var(--accent-hi); }
     .yatt-ctrl .ptask-row[data-line]:hover { background: rgba(59,130,246,0.06); }
+    .k-col.drag-over .k-cards { background: rgba(59,130,246,0.08); border-radius: 0 0 6px 6px; outline: 2px dashed var(--accent); outline-offset: -2px; }
+    .k-card.dragging { opacity: 0.35; pointer-events: none; }
 
     /* ─── Scrollbar for hljs ──────────────────────────────────── */
 
@@ -2006,6 +2008,51 @@ end: ff-and-e
     }
   }
 
+  // ─── Kanban drag-and-drop ────────────────────────────────────────────────────
+
+  function initKanban(kbEl, bidx) {
+    let dragging = null;
+    kbEl.querySelectorAll('.k-card[data-line]').forEach(function (card) {
+      card.setAttribute('draggable', 'true');
+      card.addEventListener('dragstart', function (e) {
+        dragging = card;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.getAttribute('data-line'));
+      });
+      card.addEventListener('dragend', function () {
+        card.classList.remove('dragging');
+        dragging = null;
+      });
+    });
+    kbEl.querySelectorAll('.k-col[data-status]').forEach(function (col) {
+      const newStatus = col.getAttribute('data-status');
+      col.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        col.classList.add('drag-over');
+      });
+      col.addEventListener('dragleave', function () {
+        col.classList.remove('drag-over');
+      });
+      col.addEventListener('drop', function (e) {
+        e.preventDefault();
+        col.classList.remove('drag-over');
+        const lineNum = parseInt(e.dataTransfer.getData('text/plain') || '0', 10);
+        const block = yattBlockSources[bidx];
+        if (!block) return;
+        const task = block.tasks.find(t => t.line === lineNum);
+        if (!task || task.status === newStatus) return;
+
+        // Update task status and patch the editor
+        const updated = Object.assign({}, task, { status: newStatus });
+        const newSource = patchBlockSource(block.source, task.line, serializeTaskLine(updated), task.description);
+        editor.value = patchMarkdownBlock(editor.value, bidx, newSource);
+        syncHighlight();
+        renderPreview();
+      });
+    });
+  }
+
   // ─── Render preview ──────────────────────────────────────────────────────────
 
   function renderPreview() {
@@ -2023,6 +2070,13 @@ end: ff-and-e
     }
 
     preview.innerHTML = html;
+
+    // Wire kanban drag-and-drop on each rendered block
+    preview.querySelectorAll('.yatt-ctrl[data-bidx]').forEach(function (ctrl) {
+      const bidx = parseInt(ctrl.getAttribute('data-bidx'), 10);
+      const kbEl = ctrl.querySelector('.ctrl-kanban');
+      if (kbEl) initKanban(kbEl, bidx);
+    });
 
     // Update status bar
     updateStatusBar(content.length);
