@@ -156,23 +156,56 @@
       border-right: 1px solid var(--border);
     }
 
-    #editor {
+    /* ── Editor overlay container ─────────────────────────────── */
+
+    #editor-wrapper {
       flex: 1;
-      width: 100%;
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Shared metrics — must be pixel-identical between the two layers */
+    #editor-highlight,
+    #editor {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      margin: 0;
+      border: none;
       font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
       font-size: 14px;
       line-height: 1.6;
-      border: none;
       padding: 20px;
-      resize: none;
-      outline: none;
       tab-size: 2;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-break: normal;
+      box-sizing: border-box;
+    }
+
+    /* Highlight layer — sits behind the textarea, never receives input */
+    #editor-highlight {
+      overflow-y: scroll;     /* match scrollbar space so content width = textarea */
+      scrollbar-width: none;  /* but hide the scrollbar itself */
+      color: transparent;     /* token <span>s supply the color */
+      background: transparent;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    #editor-highlight::-webkit-scrollbar { display: none; }
+
+    /* Textarea — transparent text so the highlight layer shows through */
+    #editor {
+      background: transparent;
+      color: transparent;
+      caret-color: var(--text);
+      outline: none;
+      resize: none;
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: var(--border) transparent;
+      z-index: 2;
     }
 
     #editor::-webkit-scrollbar { width: 6px; }
@@ -593,6 +626,56 @@
       #preview { padding: 16px; }
     }
 
+    /* ─── Syntax-highlight token classes ─────────────────────── */
+
+    /* Markdown */
+    .hl-md-fence    { color: #388bfd; font-weight: 600; }
+    .hl-md-codefence { color: #6e7681; }
+    .hl-md-h1       { color: #e6edf3; font-weight: 700; }
+    .hl-md-h2       { color: #e6edf3; font-weight: 600; }
+    .hl-md-h3       { color: #c9d1d9; font-weight: 600; }
+    .hl-md-text     { color: #c9d1d9; }
+
+    /* YATT structural */
+    .hl-comment     { color: #6e7681; font-style: italic; }
+    .hl-meta-key    { color: #79c0ff; }
+    .hl-meta-val    { color: #e6edf3; }
+    .hl-punct       { color: #8b949e; }
+    .hl-section     { color: #e6edf3; font-weight: 700; }
+    .hl-ms-marker   { color: #e3b341; font-weight: 700; }
+    .hl-ms-name     { color: #ffa657; }
+    .hl-parallel-kw { color: #ff7b72; font-weight: 600; }
+    .hl-parallel-id { color: #ffa657; }
+    .hl-dot         { color: #484f58; }
+    .hl-bracket     { color: #8b949e; }
+    .hl-pipe        { color: #3d444d; }
+    .hl-name        { color: #e6edf3; }
+    .hl-default     { color: #c9d1d9; }
+
+    /* YATT status sigils */
+    .hl-s-new       { color: #8b949e; }
+    .hl-s-active    { color: #388bfd; font-weight: 600; }
+    .hl-s-done      { color: #3fb950; font-weight: 600; }
+    .hl-s-blocked   { color: #f85149; font-weight: 600; }
+    .hl-s-atrisk    { color: #f0883e; font-weight: 600; }
+    .hl-s-deferred  { color: #bc8cff; }
+    .hl-s-cancelled { color: #6e7681; }
+    .hl-s-review    { color: #d29922; font-weight: 600; }
+    .hl-s-paused    { color: #8b949e; }
+
+    /* YATT task fields */
+    .hl-duration    { color: #bc8cff; }
+    .hl-assignee    { color: #79c0ff; }
+    .hl-tag         { color: #e3b341; }
+    .hl-progress    { color: #f0883e; }
+    .hl-id          { color: #56d364; }
+    .hl-dep         { color: #56d364; }
+    .hl-priority    { color: #ff7b72; }
+    .hl-modifier    { color: #ffa657; }
+    .hl-date        { color: #7ee787; }
+    .hl-extref      { color: #8b949e; font-style: italic; }
+    .hl-recur       { color: #d2a8ff; }
+
     /* ─── Scrollbar for hljs ──────────────────────────────────── */
 
     .hljs { background: transparent !important; }
@@ -622,7 +705,10 @@
 
   <div id="workspace">
     <div id="editor-pane">
-      <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+      <div id="editor-wrapper">
+        <pre id="editor-highlight" aria-hidden="true"></pre>
+        <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+      </div>
     </div>
     <div id="divider"></div>
     <div id="preview-pane">
@@ -1128,8 +1214,9 @@ end: ff-and-e
 
   // ─── DOM refs ────────────────────────────────────────────────────────────────
 
-  const editor        = document.getElementById('editor');
-  const preview       = document.getElementById('preview');
+  const editor          = document.getElementById('editor');
+  const editorHighlight = document.getElementById('editor-highlight');
+  const preview         = document.getElementById('preview');
   const workspace     = document.getElementById('workspace');
   const editorPane    = document.getElementById('editor-pane');
   const divider       = document.getElementById('divider');
@@ -1214,6 +1301,189 @@ end: ff-and-e
 
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ─── Syntax highlighting ──────────────────────────────────────────────────────
+
+  function syncHighlight() {
+    editorHighlight.innerHTML = buildHighlight(editor.value);
+    editorHighlight.scrollTop = editor.scrollTop;
+  }
+
+  function statusCls(s) {
+    const sigil = { ' ':'hl-s-new','~':'hl-s-active','x':'hl-s-done','!':'hl-s-blocked',
+      '?':'hl-s-atrisk','>':'hl-s-deferred','_':'hl-s-cancelled','-':'hl-s-cancelled',
+      '=':'hl-s-review','o':'hl-s-paused' };
+    const word  = { 'new':'hl-s-new','active':'hl-s-active','done':'hl-s-done','blocked':'hl-s-blocked',
+      'at-risk':'hl-s-atrisk','deferred':'hl-s-deferred','cancelled':'hl-s-cancelled',
+      'review':'hl-s-review','paused':'hl-s-paused' };
+    return sigil[s] || word[s.toLowerCase()] || 'hl-s-new';
+  }
+
+  // Split "name | f1 | f2 | after:a|b | f3" keeping after:x|y together
+  function splitPipeFields(str) {
+    const parts = str.split('|');
+    const acc = [];
+    for (const p of parts) {
+      if (acc.length > 0 && /^\s*after:/i.test(acc[acc.length - 1]) && /^\s*[\w-]+\s*$/.test(p)) {
+        acc[acc.length - 1] += '|' + p;
+      } else {
+        acc.push(p);
+      }
+    }
+    return acc;
+  }
+
+  function hlField(raw) {
+    const f = raw.trim();
+    if (!f) return esc(raw);
+    if (/^\d+(?:\.\d+)?(h|bd|d|w|m|q)$/.test(f))
+      return '<span class="hl-duration">' + esc(f) + '</span>';
+    if (/^(@[\w-]+\s*)+$/.test(f))
+      return f.replace(/(@[\w-]+)/g, m => '<span class="hl-assignee">' + esc(m) + '</span>');
+    if (/^#[\w-]+$/.test(f))
+      return '<span class="hl-tag">' + esc(f) + '</span>';
+    if (/^%\d+$/.test(f))
+      return '<span class="hl-progress">' + esc(f) + '</span>';
+    if (/^id:[\w-]+$/i.test(f))
+      return '<span class="hl-punct">id:</span><span class="hl-id">' + esc(f.slice(3)) + '</span>';
+    if (/^after:/i.test(f))
+      return '<span class="hl-punct">after:</span><span class="hl-dep">' + esc(f.slice(6)) + '</span>';
+    if (/^!(high|critical|low|normal)$/i.test(f))
+      return '<span class="hl-priority">' + esc(f) + '</span>';
+    if (/^\+[\w-]+(:\S+)?$/.test(f))
+      return '<span class="hl-modifier">' + esc(f) + '</span>';
+    if (/^>\d{4}-\d{2}-\d{2}$/.test(f))
+      return '<span class="hl-date">' + esc(f) + '</span>';
+    if (/^<\d{4}-\d{2}-\d{2}$/.test(f))
+      return '<span class="hl-date">' + esc(f) + '</span>';
+    if (/^\$[\w-]+$/.test(f))
+      return '<span class="hl-extref">' + esc(f) + '</span>';
+    if (/^\*(daily|weekday|weekly|biweekly|monthly|quarterly|yearly)$/i.test(f))
+      return '<span class="hl-recur">' + esc(f) + '</span>';
+    const shiftM = f.match(/^(delayed|blocked)\s+(\S+)$/i);
+    if (shiftM)
+      return '<span class="hl-modifier">' + esc(shiftM[1]) + '</span> <span class="hl-duration">' + esc(shiftM[2]) + '</span>';
+    return '<span class="hl-default">' + esc(f) + '</span>';
+  }
+
+  function hlTaskLine(trimmed) {
+    let rest = trimmed;
+    let out = '';
+    // Leading dots
+    const dotM = rest.match(/^(\.{1,3})\s*/);
+    if (dotM) {
+      out += '<span class="hl-dot">' + esc(dotM[1]) + '</span>';
+      rest = rest.slice(dotM[0].length);
+    }
+    // Status badge [x] or [done]
+    const sM = rest.match(/^(\[)([^\]]+)(\])\s*/);
+    if (sM) {
+      out += '<span class="hl-bracket">[</span>' +
+             '<span class="' + statusCls(sM[2]) + '">' + esc(sM[2]) + '</span>' +
+             '<span class="hl-bracket">]</span> ';
+      rest = rest.slice(sM[0].length);
+    }
+    const fields = splitPipeFields(rest);
+    out += '<span class="hl-name">' + esc(fields[0]) + '</span>';
+    for (let i = 1; i < fields.length; i++)
+      out += '<span class="hl-pipe"> | </span>' + hlField(fields[i]);
+    return out;
+  }
+
+  function hlMilestoneLine(trimmed) {
+    const fields = splitPipeFields(trimmed.slice(2));
+    let out = '<span class="hl-ms-marker">>></span><span class="hl-ms-name">' + esc(fields[0]) + '</span>';
+    for (let i = 1; i < fields.length; i++)
+      out += '<span class="hl-pipe"> | </span>' + hlField(fields[i]);
+    return out;
+  }
+
+  function hlParallelLine(trimmed) {
+    const m = trimmed.match(/^(parallel|end)\s*:\s*(.*)/i);
+    if (!m) return '<span class="hl-default">' + esc(trimmed) + '</span>';
+    const fields = splitPipeFields(m[2]);
+    let out = '<span class="hl-parallel-kw">' + esc(m[1]) + ':</span>';
+    if (fields[0].trim()) out += ' <span class="hl-parallel-id">' + esc(fields[0]) + '</span>';
+    for (let i = 1; i < fields.length; i++)
+      out += '<span class="hl-pipe"> | </span>' + hlField(fields[i]);
+    return out;
+  }
+
+  const YATT_META = /^(title|start|finish|schedule|owner|version|timezone|week-start)\s*:/i;
+
+  function hlYattLine(line) {
+    const indent = line.match(/^(\s*)/)[1];
+    const trimmed = line.slice(indent.length);
+    const ei = esc(indent);
+    if (!trimmed) return '';
+
+    if (trimmed.startsWith('//'))
+      return ei + '<span class="hl-comment">' + esc(trimmed) + '</span>';
+
+    if (YATT_META.test(trimmed)) {
+      const m = trimmed.match(/^([\w-]+)\s*:\s*(.*)/);
+      if (m) return ei +
+        '<span class="hl-meta-key">' + esc(m[1]) + '</span>' +
+        '<span class="hl-punct">: </span>' +
+        '<span class="hl-meta-val">' + esc(m[2]) + '</span>';
+    }
+
+    if (trimmed.startsWith('>>'))
+      return ei + hlMilestoneLine(trimmed);
+
+    if (/^(parallel|end)\s*:/i.test(trimmed))
+      return ei + hlParallelLine(trimmed);
+
+    if (/^#{1,3}\s/.test(trimmed))
+      return ei + '<span class="hl-section">' + esc(trimmed) + '</span>';
+
+    if (/^\*(daily|weekday|weekly|biweekly|monthly|quarterly|yearly)\s+/i.test(trimmed)) {
+      const m = trimmed.match(/^(\*\w+)\s+(.*)/);
+      if (m) {
+        const fields = splitPipeFields(m[2]);
+        let out = ei + '<span class="hl-recur">' + esc(m[1]) + '</span> <span class="hl-name">' + esc(fields[0]) + '</span>';
+        for (let i = 1; i < fields.length; i++) out += '<span class="hl-pipe"> | </span>' + hlField(fields[i]);
+        return out;
+      }
+    }
+
+    if (/^\.{0,3}\s*\[/.test(trimmed))
+      return ei + hlTaskLine(trimmed);
+
+    return '<span class="hl-default">' + esc(line) + '</span>';
+  }
+
+  function hlMarkdownLine(line) {
+    const hm = line.match(/^(#{1,4})\s/);
+    if (hm) {
+      const cls = hm[1].length === 1 ? 'hl-md-h1' : hm[1].length === 2 ? 'hl-md-h2' : 'hl-md-h3';
+      return '<span class="' + cls + '">' + esc(line) + '</span>';
+    }
+    return '<span class="hl-md-text">' + esc(line) + '</span>';
+  }
+
+  function buildHighlight(text) {
+    const lines = text.split('\n');
+    let mode = 'md'; // 'md' | 'yatt' | 'fence'
+    let fenceClose = '```';
+    const out = [];
+    for (const line of lines) {
+      if (mode === 'md') {
+        if (/^```yatt\s*$/.test(line))  { mode = 'yatt'; fenceClose = '```'; out.push('<span class="hl-md-fence">```yatt</span>'); continue; }
+        if (/^~~~yatt\s*$/.test(line))  { mode = 'yatt'; fenceClose = '~~~'; out.push('<span class="hl-md-fence">~~~yatt</span>'); continue; }
+        if (/^```/.test(line))          { mode = 'fence'; fenceClose = '```'; out.push('<span class="hl-md-codefence">' + esc(line) + '</span>'); continue; }
+        if (/^~~~/.test(line))          { mode = 'fence'; fenceClose = '~~~'; out.push('<span class="hl-md-codefence">' + esc(line) + '</span>'); continue; }
+        out.push(hlMarkdownLine(line));
+      } else if (mode === 'yatt') {
+        if (line.trimEnd() === fenceClose) { mode = 'md'; out.push('<span class="hl-md-fence">' + esc(line) + '</span>'); continue; }
+        out.push(hlYattLine(line));
+      } else {
+        if (line.trimEnd() === fenceClose) { mode = 'md'; out.push('<span class="hl-md-codefence">' + esc(line) + '</span>'); continue; }
+        out.push('<span class="hl-md-codefence">' + esc(line) + '</span>');
+      }
+    }
+    return out.join('\n') + '\n'; // trailing \n keeps cursor visible at end
   }
 
   function sdotHtml(status) {
@@ -1460,11 +1730,19 @@ end: ff-and-e
       const end = this.selectionEnd;
       this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
       this.selectionStart = this.selectionEnd = start + 2;
+      syncHighlight();
       scheduleRender();
     }
   });
 
-  editor.addEventListener('input', scheduleRender);
+  editor.addEventListener('input', function () {
+    syncHighlight();
+    scheduleRender();
+  });
+
+  editor.addEventListener('scroll', function () {
+    editorHighlight.scrollTop = this.scrollTop;
+  });
 
   // ─── Examples dropdown ───────────────────────────────────────────────────────
 
@@ -1472,6 +1750,7 @@ end: ff-and-e
     const key = this.value;
     if (EXAMPLES[key] !== undefined) {
       editor.value = EXAMPLES[key];
+      syncHighlight();
       renderPreview();
     }
   });
@@ -1547,6 +1826,7 @@ end: ff-and-e
   function init() {
     setupMarked();
     editor.value = EXAMPLES['quick-start'];
+    syncHighlight();
     renderPreview();
     applyResponsiveDefault();
   }
