@@ -676,6 +676,62 @@
     .hl-extref      { color: #8b949e; font-style: italic; }
     .hl-recur       { color: #d2a8ff; }
 
+    /* ─── Task edit modal ─────────────────────────────────────── */
+
+    #task-edit-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+      z-index: 1000; display: flex; align-items: center; justify-content: center;
+    }
+    #task-edit-overlay.hidden { display: none; }
+    #task-edit-modal {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      padding: 22px 24px; width: 500px; max-height: 88vh; overflow-y: auto;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .te-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+    .te-row { display: grid; gap: 10px; margin-bottom: 10px; }
+    .te-row.cols-2 { grid-template-columns: 1fr 1fr; }
+    .te-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .te-field label { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 4px; }
+    .te-field input, .te-field select, .te-field textarea {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 5px; color: var(--text); padding: 5px 8px; font-size: 12px;
+      font-family: inherit; outline: none; transition: border-color 0.1s; box-sizing: border-box;
+    }
+    .te-field input:focus, .te-field select:focus, .te-field textarea:focus { border-color: var(--accent); }
+    .te-field select option { background: var(--panel); }
+    .te-field textarea { resize: vertical; min-height: 56px; }
+    .te-actions { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
+    .te-save-msg { font-size: 11px; color: var(--text-muted); flex: 1; }
+    .te-btn { padding: 5px 16px; border-radius: 5px; border: none; cursor: pointer;
+      font-size: 12px; font-family: inherit; font-weight: 500; transition: opacity 0.1s; }
+    .te-btn-primary { background: var(--accent); color: #fff; }
+    .te-btn-primary:hover { opacity: 0.85; }
+    .te-btn-ghost { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); }
+    .te-btn-ghost:hover { background: rgba(255,255,255,0.1); }
+
+    /* ─── Gantt hover card ────────────────────────────────────── */
+
+    #gantt-hover-card {
+      display: none; position: fixed; z-index: 9999; pointer-events: none;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; min-width: 180px; max-width: 260px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3); font-size: 12px;
+    }
+    .ghc-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; line-height: 1.3; }
+    .ghc-row { display: flex; align-items: center; gap: 6px; color: var(--text-muted); margin-bottom: 3px; font-size: 11px; }
+    .ghc-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .ghc-desc { color: var(--text-muted); font-style: italic; font-size: 11px; margin-top: 6px;
+      padding-top: 6px; border-top: 1px solid var(--border); line-height: 1.4; }
+    .ghc-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+    .ghc-tag { background: var(--border); color: var(--text-muted); border-radius: 3px; padding: 1px 5px; font-size: 10px; }
+
+    /* Cursor pointer on clickable task elements */
+    .yatt-ctrl .k-card[data-line], .yatt-ctrl .ptask-row[data-line] { cursor: pointer; }
+    .yatt-ctrl .k-card[data-line]:hover { border-color: var(--accent-hi); }
+    .yatt-ctrl .ptask-row[data-line]:hover { background: rgba(59,130,246,0.06); }
+
     /* ─── Scrollbar for hljs ──────────────────────────────────── */
 
     .hljs { background: transparent !important; }
@@ -722,6 +778,61 @@
     <span class="powered">Powered by YATT</span>
   </footer>
 </div>
+
+<!-- Task edit modal -->
+<div id="task-edit-overlay" class="hidden">
+  <div id="task-edit-modal">
+    <div class="te-title">Edit Task</div>
+    <div class="te-row">
+      <div class="te-field"><label>Name</label><input type="text" id="te-name" placeholder="Task name"></div>
+    </div>
+    <div class="te-row cols-2">
+      <div class="te-field"><label>Status</label>
+        <select id="te-status">
+          <option value="new">New</option><option value="active">Active</option>
+          <option value="review">Review</option><option value="blocked">Blocked</option>
+          <option value="paused">Paused</option><option value="done">Done</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="te-field"><label>Priority</label>
+        <select id="te-priority">
+          <option value="low">Low</option><option value="normal">Normal</option>
+          <option value="high">High</option><option value="critical">Critical</option>
+        </select>
+      </div>
+    </div>
+    <div class="te-row cols-2">
+      <div class="te-field"><label>Assignees (space-separated)</label><input type="text" id="te-assignees" placeholder="@alice @bob"></div>
+      <div class="te-field"><label>Tags (space-separated)</label><input type="text" id="te-tags" placeholder="#backend #api"></div>
+    </div>
+    <div class="te-row cols-3">
+      <div class="te-field"><label>Duration</label><input type="text" id="te-duration" placeholder="5d, 2bd, 1w"></div>
+      <div class="te-field"><label>Start Date</label><input type="text" id="te-startdate" placeholder="YYYY-MM-DD"></div>
+      <div class="te-field"><label>Due Date</label><input type="text" id="te-duedate" placeholder="YYYY-MM-DD"></div>
+    </div>
+    <div class="te-row cols-3">
+      <div class="te-field"><label>Progress (%)</label><input type="number" id="te-progress" min="0" max="100" placeholder="0"></div>
+      <div class="te-field"><label>ID</label><input type="text" id="te-id" placeholder="task-slug"></div>
+      <div class="te-field"><label>After (deps)</label><input type="text" id="te-after" placeholder="id1,id2"></div>
+    </div>
+    <div class="te-row cols-2">
+      <div class="te-field"><label>Delayed by</label><input type="text" id="te-delayed" placeholder="3d, 1w"></div>
+      <div class="te-field"><label>Blocked for</label><input type="text" id="te-blocked" placeholder="2w, 5d"></div>
+    </div>
+    <div class="te-row">
+      <div class="te-field"><label>Description</label><textarea id="te-description" placeholder="Optional note (saved as // comment lines)"></textarea></div>
+    </div>
+    <div class="te-actions">
+      <span class="te-save-msg" id="te-save-msg"></span>
+      <button class="te-btn te-btn-ghost" id="te-cancel-btn">Cancel</button>
+      <button class="te-btn te-btn-primary" id="te-save-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gantt hover card -->
+<div id="gantt-hover-card"></div>
 
 <!-- External deps -->
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
@@ -1211,6 +1322,9 @@ end: ff-and-e
   let isDragging = false;
   let dragStartX = 0;
   let dragStartWidth = 0;
+  let yattBlockSources = []; // [{ctrlId, source, tasks}] indexed by bidx — reset each render
+  let editTask = null;
+  let editBidx = -1;
 
   // ─── DOM refs ────────────────────────────────────────────────────────────────
 
@@ -1512,8 +1626,16 @@ end: ff-and-e
           progress: t.progress,
           modifiers: t.modifiers || [],
           depth,
+          dotPrefix: '.'.repeat(depth),
           line: t.line,
+          description: t.description,
         };
+        if (t.id) info.id = t.id;
+        if (t.duration) info.duration = `${t.duration.value}${t.duration.unit}`;
+        if (t.startDate) info.startDate = t.startDate;
+        if (t.dueDate) info.dueDate = t.dueDate;
+        if (t.after && t.after.length)
+          info.after = t.after.map(d => d.ids.join(d.logic === 'or' ? '|' : ',')).join(',');
         tasks.push(info);
         if (t.subtasks && t.subtasks.length) {
           tasks.push(...extractTasks(t.subtasks, depth + 1));
@@ -1555,7 +1677,7 @@ end: ff-and-e
       html += `<div class="k-cards">`;
       for (const t of cards) {
         const indent = t.depth > 0 ? `padding-left:${8 + t.depth * 10}px;` : '';
-        html += `<div class="k-card" style="${indent}">`;
+        html += `<div class="k-card" style="${indent}" data-line="${t.line}">`;
         html += `<div class="k-card-name">${esc(t.name)}</div>`;
         html += `<div class="k-card-meta">`;
         if (t.assignees && t.assignees.length) {
@@ -1599,7 +1721,7 @@ end: ff-and-e
       html += `<div><div class="person-name">${esc(isU ? 'Unassigned' : '@' + name)}</div>`;
       html += `<div class="person-count">${list.length} task${list.length === 1 ? '' : 's'}</div></div></div>`;
       for (const t of list) {
-        html += `<div class="ptask-row">${sdotHtml(t.status)}`;
+        html += `<div class="ptask-row" data-line="${t.line}">${sdotHtml(t.status)}`;
         html += `<span class="ptask-name">${esc(t.name)}</span>`;
         if (t.priority && t.priority !== 'normal') {
           html += `<span style="font-size:10px;color:var(--text-muted)">${esc(t.priority)}</span>`;
@@ -1612,6 +1734,201 @@ end: ff-and-e
       html += `</div>`;
     }
     return html;
+  }
+
+  // ─── Task serialization & patching ──────────────────────────────────────────
+
+  const STATUS_SIGIL = {
+    new: ' ', active: '~', done: 'x', blocked: '!',
+    'at-risk': '?', deferred: '>', cancelled: '_', review: '=', paused: 'o',
+  };
+
+  function serializeTaskLine(t) {
+    const sigil = STATUS_SIGIL[t.status] || ' ';
+    const dots = t.dotPrefix || '';
+    const fields = [];
+    if (t.id) fields.push(`id:${t.id}`);
+    if (t.duration) fields.push(t.duration);
+    if (t.startDate) fields.push(`>${t.startDate}`);
+    if (t.dueDate) fields.push(`<${t.dueDate}`);
+    if (t.after) fields.push(`after:${t.after}`);
+    if (t.assignees && t.assignees.length)
+      t.assignees.forEach(a => fields.push(`@${a}`));
+    if (t.tags && t.tags.length)
+      t.tags.forEach(tag => fields.push(`#${tag}`));
+    if (t.priority && t.priority !== 'normal') fields.push(`p:${t.priority}`);
+    if (t.progress != null && t.progress !== 0) fields.push(`${t.progress}%`);
+    (t.modifiers || []).forEach(m => {
+      if (m.type === 'delayed') fields.push(`delayed:${m.value}${m.unit}`);
+      else if (m.type === 'blocked') fields.push(`blocked:${m.value}${m.unit}`);
+    });
+    const fieldStr = fields.length ? ` | ${fields.join(' | ')}` : '';
+    return `[${sigil}] ${dots}${t.name}${fieldStr}`;
+  }
+
+  function patchBlockSource(source, lineNum, newLine, descText) {
+    const lines = source.split('\n');
+    // Line numbers are 1-based, but the block source starts from line 1 of the block
+    // Find the task line within the block source
+    let blockLineIdx = -1;
+    let lineCount = 0;
+    for (let i = 0; i < lines.length; i++) {
+      lineCount++;
+      if (lineCount === lineNum) { blockLineIdx = i; break; }
+    }
+    if (blockLineIdx === -1) return source;
+
+    // Remove any immediately following // description lines
+    let nextIdx = blockLineIdx + 1;
+    while (nextIdx < lines.length && /^\s*\/\//.test(lines[nextIdx])) nextIdx++;
+
+    const newLines = [
+      ...lines.slice(0, blockLineIdx),
+      newLine,
+      ...(descText
+        ? descText.split('\n').filter(Boolean).map(l => `// ${l.trim()}`)
+        : []),
+      ...lines.slice(nextIdx),
+    ];
+    return newLines.join('\n');
+  }
+
+  function patchMarkdownBlock(markdown, bidx, newBlockSource) {
+    // Find the bidx-th ```yatt ... ``` fence and replace its content
+    const fence = /^```yatt\s*\n([\s\S]*?)^```\s*$/gm;
+    let match, count = 0, result = markdown;
+    fence.lastIndex = 0;
+    while ((match = fence.exec(markdown)) !== null) {
+      if (count === bidx) {
+        const before = markdown.slice(0, match.index);
+        const after = markdown.slice(match.index + match[0].length);
+        result = `${before}\`\`\`yatt\n${newBlockSource}${newBlockSource.endsWith('\n') ? '' : '\n'}\`\`\`${after}`;
+        break;
+      }
+      count++;
+    }
+    return result;
+  }
+
+  // ─── Task edit modal ─────────────────────────────────────────────────────────
+
+  function openTaskEdit(task, bidx) {
+    editTask = Object.assign({}, task);
+    editBidx = bidx;
+    document.getElementById('te-name').value = task.name || '';
+    document.getElementById('te-status').value = task.status || 'new';
+    document.getElementById('te-priority').value = task.priority || 'normal';
+    document.getElementById('te-assignees').value = (task.assignees || []).map(a => `@${a}`).join(' ');
+    document.getElementById('te-tags').value = (task.tags || []).map(t => `#${t}`).join(' ');
+    document.getElementById('te-duration').value = task.duration || '';
+    document.getElementById('te-startdate').value = task.startDate || '';
+    document.getElementById('te-duedate').value = task.dueDate || '';
+    document.getElementById('te-progress').value = task.progress != null ? task.progress : '';
+    document.getElementById('te-id').value = task.id || '';
+    document.getElementById('te-after').value = task.after || '';
+    const delayed = (task.modifiers || []).find(m => m.type === 'delayed');
+    const blocked = (task.modifiers || []).find(m => m.type === 'blocked');
+    document.getElementById('te-delayed').value = delayed ? `${delayed.value}${delayed.unit}` : '';
+    document.getElementById('te-blocked').value = blocked ? `${blocked.value}${blocked.unit}` : '';
+    document.getElementById('te-description').value = task.description || '';
+    document.getElementById('te-save-msg').textContent = '';
+    document.getElementById('task-edit-overlay').classList.remove('hidden');
+    document.getElementById('te-name').focus();
+  }
+
+  function closeTaskEdit() {
+    editTask = null;
+    editBidx = -1;
+    document.getElementById('task-edit-overlay').classList.add('hidden');
+  }
+
+  function saveTaskEdit() {
+    if (!editTask || editBidx < 0) return;
+    const block = yattBlockSources[editBidx];
+    if (!block) return;
+
+    const updated = Object.assign({}, editTask);
+    updated.name = document.getElementById('te-name').value.trim() || updated.name;
+    updated.status = document.getElementById('te-status').value;
+    updated.priority = document.getElementById('te-priority').value;
+    updated.assignees = document.getElementById('te-assignees').value
+      .split(/\s+/).filter(Boolean).map(a => a.replace(/^@/, ''));
+    updated.tags = document.getElementById('te-tags').value
+      .split(/\s+/).filter(Boolean).map(t => t.replace(/^#/, ''));
+    updated.duration = document.getElementById('te-duration').value.trim() || null;
+    updated.startDate = document.getElementById('te-startdate').value.trim() || null;
+    updated.dueDate = document.getElementById('te-duedate').value.trim() || null;
+    const progVal = document.getElementById('te-progress').value;
+    updated.progress = progVal !== '' ? parseInt(progVal, 10) : null;
+    updated.id = document.getElementById('te-id').value.trim() || null;
+    updated.after = document.getElementById('te-after').value.trim() || null;
+    const delayedStr = document.getElementById('te-delayed').value.trim();
+    const blockedStr = document.getElementById('te-blocked').value.trim();
+    updated.modifiers = [];
+    if (delayedStr) {
+      const m = delayedStr.match(/^(\d+)(bd|d|w|m|y)$/);
+      if (m) updated.modifiers.push({ type: 'delayed', value: parseInt(m[1], 10), unit: m[2] });
+    }
+    if (blockedStr) {
+      const m = blockedStr.match(/^(\d+)(bd|d|w|m|y)$/);
+      if (m) updated.modifiers.push({ type: 'blocked', value: parseInt(m[1], 10), unit: m[2] });
+    }
+    const descText = document.getElementById('te-description').value.trim();
+
+    // The task line number inside the block source — find by matching the original line
+    // block.lineOffset is 0-based offset; task.line is the line number within the block
+    const newLine = serializeTaskLine(updated);
+    const newSource = patchBlockSource(block.source, editTask.line, newLine, descText);
+
+    editor.value = patchMarkdownBlock(editor.value, editBidx, newSource);
+    syncHighlight();
+    renderPreview();
+    closeTaskEdit();
+  }
+
+  // ─── Hover card ──────────────────────────────────────────────────────────────
+
+  const hoverCard = document.getElementById('gantt-hover-card');
+  let hoverTimer = null;
+
+  function showHoverCard(task, mx, my) {
+    clearTimeout(hoverTimer);
+    const color = STATUS_COLOR[task.status] || '#7d8590';
+    let html = `<div class="ghc-name">${esc(task.name)}</div>`;
+    html += `<div class="ghc-row"><span class="ghc-dot" style="background:${color}"></span>${esc(STATUS_LABEL[task.status] || task.status)}`;
+    if (task.priority && task.priority !== 'normal') html += ` &bull; <span style="color:var(--text-muted)">${esc(task.priority)}</span>`;
+    if (task.progress != null) html += ` &bull; ${task.progress}%`;
+    html += '</div>';
+    if (task.assignees && task.assignees.length)
+      html += `<div class="ghc-row">👤 ${task.assignees.map(a => esc('@' + a)).join(' ')}</div>`;
+    if (task.duration || task.startDate || task.dueDate) {
+      html += `<div class="ghc-row">`;
+      if (task.duration) html += `⏱ ${esc(task.duration)}`;
+      if (task.startDate) html += (task.duration ? ' · ' : '') + `${esc(task.startDate)}`;
+      if (task.dueDate) html += ` → ${esc(task.dueDate)}`;
+      html += `</div>`;
+    }
+    if (task.tags && task.tags.length)
+      html += `<div class="ghc-tags">${task.tags.map(t => `<span class="ghc-tag">#${esc(t)}</span>`).join('')}</div>`;
+    if (task.description) html += `<div class="ghc-desc">${esc(task.description)}</div>`;
+    hoverCard.innerHTML = html;
+    hoverCard.style.display = 'block';
+    positionHoverCard(mx, my);
+  }
+
+  function positionHoverCard(mx, my) {
+    const cardW = 260, cardH = 160;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let x = mx + 14, y = my + 14;
+    if (x + cardW > vw - 8) x = mx - cardW - 8;
+    if (y + cardH > vh - 8) y = my - cardH - 8;
+    hoverCard.style.left = `${Math.max(0, x)}px`;
+    hoverCard.style.top = `${Math.max(0, y)}px`;
+  }
+
+  function hideHoverCard() {
+    clearTimeout(hoverTimer);
+    hoverCard.style.display = 'none';
   }
 
   // ─── YATT rendering ──────────────────────────────────────────────────────────
@@ -1658,6 +1975,13 @@ end: ff-and-e
         }
       } catch (e) { /* non-fatal */ }
 
+      // Record block source for task-edit patching
+      const bidx = yattBlockSources.length;
+
+      // Compute per-block line offset so task.line maps to lines within this block
+      // (tasks already carry line numbers relative to the full block source, starting at 1)
+      yattBlockSources.push({ ctrlId, source: code, tasks });
+
       const errBanner = errors.length
         ? `<div class="yatt-ctrl-errors">${errors.map(e => esc(typeof e === 'string' ? e : (e.message || String(e)))).join('<br>')}</div>`
         : '';
@@ -1673,7 +1997,7 @@ end: ff-and-e
         `<button class="yatt-ctrl-tab${i === 0 ? ' active' : ''}" data-panel="${p}" onclick="yattCtrlSetView('${ctrlId}','${p}')">${p.charAt(0).toUpperCase() + p.slice(1)}</button>`
       ).join('');
 
-      return `<div class="yatt-ctrl" id="${ctrlId}">${errBanner}<div class="yatt-ctrl-bar">${tabs}</div><div class="yatt-ctrl-body">${timelinePanel}${kanbanPanel}${peoplePanel}</div></div>`;
+      return `<div class="yatt-ctrl" id="${ctrlId}" data-bidx="${bidx}">${errBanner}<div class="yatt-ctrl-bar">${tabs}</div><div class="yatt-ctrl-body">${timelinePanel}${kanbanPanel}${peoplePanel}</div></div>`;
 
     } catch (err) {
       errorCount++;
@@ -1687,6 +2011,7 @@ end: ff-and-e
   function renderPreview() {
     errorCount = 0;
     yattCtrlSeq = 0;
+    yattBlockSources = [];
 
     const content = editor.value;
     let html = '';
@@ -1809,6 +2134,60 @@ end: ff-and-e
     }
   });
 
+  // ─── Preview click/hover delegation (task edit popups) ──────────────────────
+
+  function findYattCtrl(el) {
+    while (el && el !== preview) {
+      if (el.classList && el.classList.contains('yatt-ctrl')) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function taskFromLineAttr(el) {
+    while (el && el !== preview) {
+      const lineAttr = el.getAttribute && el.getAttribute('data-line');
+      if (lineAttr !== null) {
+        return parseInt(lineAttr, 10);
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function lookupTask(bidx, lineNum) {
+    const block = yattBlockSources[bidx];
+    if (!block) return null;
+    return block.tasks.find(t => t.line === lineNum) || null;
+  }
+
+  preview.addEventListener('click', function (e) {
+    const lineNum = taskFromLineAttr(e.target);
+    if (lineNum === null) return;
+    const ctrl = findYattCtrl(e.target);
+    if (!ctrl) return;
+    const bidx = parseInt(ctrl.getAttribute('data-bidx'), 10);
+    const task = lookupTask(bidx, lineNum);
+    if (!task) return;
+    hideHoverCard();
+    openTaskEdit(task, bidx);
+  });
+
+  preview.addEventListener('mousemove', function (e) {
+    const lineNum = taskFromLineAttr(e.target);
+    if (lineNum === null) { hideHoverCard(); return; }
+    const ctrl = findYattCtrl(e.target);
+    if (!ctrl) { hideHoverCard(); return; }
+    const bidx = parseInt(ctrl.getAttribute('data-bidx'), 10);
+    const task = lookupTask(bidx, lineNum);
+    if (!task) { hideHoverCard(); return; }
+    showHoverCard(task, e.clientX, e.clientY);
+  });
+
+  preview.addEventListener('mouseleave', function () {
+    hideHoverCard();
+  });
+
   // ─── Responsive: default to preview-only on narrow screens ──────────────────
 
   function applyResponsiveDefault() {
@@ -1829,6 +2208,16 @@ end: ff-and-e
     syncHighlight();
     renderPreview();
     applyResponsiveDefault();
+
+    // Task edit modal
+    document.getElementById('te-cancel-btn').addEventListener('click', closeTaskEdit);
+    document.getElementById('te-save-btn').addEventListener('click', saveTaskEdit);
+    document.getElementById('task-edit-overlay').addEventListener('click', function (e) {
+      if (e.target === this) closeTaskEdit();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeTaskEdit();
+    });
   }
 
   // Wait for all scripts to load
