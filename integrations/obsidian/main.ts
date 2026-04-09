@@ -10,7 +10,7 @@
  */
 
 import { Plugin, MarkdownPostProcessorContext } from 'obsidian';
-import { render } from 'yatt';
+import { mountInteractiveControl } from 'yatt';
 
 export default class YattPlugin extends Plugin {
   async onload() {
@@ -36,25 +36,8 @@ export default class YattPlugin extends Plugin {
     el: HTMLElement,
     _ctx: MarkdownPostProcessorContext
   ) {
-    try {
-      const { html, errors } = render(source, 'gantt');
-
-      const container = el.createDiv({ cls: 'yatt-container' });
-
-      if (errors.length) {
-        const errDiv = container.createDiv({ cls: 'yatt-errors' });
-        for (const err of errors) {
-          errDiv.createEl('p', {
-            text: `Line ${err.line}: ${err.message}`,
-            cls: `yatt-${err.severity}`,
-          });
-        }
-      }
-
-      container.innerHTML += html;
-    } catch (err) {
-      el.createEl('pre', { text: `YATT error: ${err}`, cls: 'yatt-error' });
-    }
+    const container = el.createDiv({ cls: 'yatt-container' });
+    mountInteractiveControl(container, source, { editable: true, allowPopup: true, theme: 'dark' });
   }
 
   onunload() {}

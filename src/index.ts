@@ -3,9 +3,14 @@ export { validate } from './validator.js';
 export { schedule } from './scheduler.js';
 export { renderGanttSVG } from './renderer/gantt-svg.js';
 export { renderListHTML } from './renderer/list-html.js';
+export { mountInteractiveControl } from './renderer/control-dom.js';
 
 export type { GanttOptions } from './renderer/gantt-svg.js';
 export type { ListOptions } from './renderer/list-html.js';
+export type {
+  InteractiveControlOptions,
+  InteractiveControlHandle,
+} from './renderer/control-dom.js';
 
 export type {
   Status,
