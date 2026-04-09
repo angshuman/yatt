@@ -42,7 +42,7 @@
     ]
   },
   "scripts": {
-    "build": "esbuild extension.ts --bundle --platform=node --outfile=extension.js --external:vscode"
+    "build": "esbuild extension.ts --bundle --platform=node --outfile=extension.js --external:vscode --external:yatt"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",

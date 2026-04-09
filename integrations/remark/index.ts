@@ -1,5 +1,5 @@
 /**
- * remark-yatt: renders ```yatt code fences as Gantt SVG in remark/unified pipelines.
+ * remark-yatt: renders ```yatt code fences as Gantt/list HTML, or interactive control placeholders.
  *
  * Usage in Docusaurus (docusaurus.config.js):
  *   import { remarkYatt } from 'remark-yatt'
@@ -31,15 +31,23 @@ import type { Root, Code } from 'mdast';
 import { visit } from 'unist-util-visit';
 import { render } from 'yatt';
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export interface RemarkYattOptions {
-  /** Output format. Default: 'gantt' */
-  format?: 'gantt' | 'list';
+  /** Output format. Default: 'control' */
+  format?: 'gantt' | 'list' | 'control';
   /** If true, parse errors are embedded as HTML comments rather than thrown. Default: true */
   softErrors?: boolean;
 }
 
 export const remarkYatt: Plugin<[RemarkYattOptions?], Root> = (options = {}) => {
-  const format = options.format ?? 'gantt';
+  const format = options.format ?? 'control';
   const softErrors = options.softErrors ?? true;
 
   return (tree) => {
@@ -47,7 +55,11 @@ export const remarkYatt: Plugin<[RemarkYattOptions?], Root> = (options = {}) => 
       if (node.lang !== 'yatt' || !parent || index === undefined) return;
 
       try {
-        const { html, errors } = render(node.value, format);
+        const preview = render(node.value, 'gantt');
+        const errors = preview.errors;
+        const html = format === 'control'
+          ? `<pre data-yatt data-yatt-format="control">${escapeHtml(node.value)}</pre>`
+          : render(node.value, format).html;
 
         const errorComment = errors.length && softErrors
           ? `<!-- yatt warnings:\n${errors.map(e => `  Line ${e.line}: ${e.message}`).join('\n')}\n-->`

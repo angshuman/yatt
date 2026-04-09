@@ -1,143 +1,137 @@
-import * as vscode from 'vscode';
-import type { MarkdownIt } from 'vscode';
+"use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-let yatt: typeof import('yatt') | null = null;
-
+// extension.ts
+var extension_exports = {};
+__export(extension_exports, {
+  activate: () => activate,
+  deactivate: () => deactivate,
+  extendMarkdownIt: () => extendMarkdownIt
+});
+module.exports = __toCommonJS(extension_exports);
+var vscode = __toESM(require("vscode"));
+var yatt = null;
 async function getYatt() {
-  if (!yatt) yatt = await import('yatt');
+  if (!yatt) yatt = await import("yatt");
   return yatt;
 }
-
-type TaskView = {
-  line: number;
-  depth: number;
-  name: string;
-  status: string;
-  assignees: string[];
-  tags: string[];
-  priority?: string;
-  progress?: number;
-  duration?: string;
-  startDate?: string;
-  dueDate?: string;
-  id?: string;
-  after?: string;
-  modifiers: string[];
-  description?: string;
-};
-
-function esc(s: string): string {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
-
-function flattenTasks(items: any[], out: TaskView[], depth = 0): void {
+function flattenTasks(items, out, depth = 0) {
   for (const item of items) {
-    if (item.type === 'task') {
+    if (item.type === "task") {
       out.push({
         line: item.line,
         depth,
         name: item.name,
         status: item.status,
-        assignees: [...(item.assignees || [])],
-        tags: [...(item.tags || [])],
+        assignees: [...item.assignees || []],
+        tags: [...item.tags || []],
         priority: item.priority,
         progress: item.progress,
-        duration: item.duration ? `${item.duration.value}${item.duration.unit}` : undefined,
+        duration: item.duration ? `${item.duration.value}${item.duration.unit}` : void 0,
         startDate: item.startDate,
         dueDate: item.dueDate,
         id: item.id,
-        after: (item.after || [])
-          .map((d: any) => d.ids.join(d.logic === 'or' ? '|' : ','))
-          .join(','),
-        modifiers: [...(item.modifiers || [])],
-        description: item.description,
+        after: (item.after || []).map((d) => d.ids.join(d.logic === "or" ? "|" : ",")).join(","),
+        modifiers: [...item.modifiers || []],
+        description: item.description
       });
       if (item.subtasks?.length) flattenTasks(item.subtasks, out, depth + 1);
-    } else if (item.type === 'parallel') {
+    } else if (item.type === "parallel") {
       flattenTasks(item.items || [], out, depth);
     }
   }
 }
-
-function buildKanbanHtml(tasks: TaskView[]): string {
-  const cols = ['new', 'active', 'review', 'blocked', 'paused', 'done', 'cancelled'];
-  const labels: Record<string, string> = {
-    new: 'New',
-    active: 'Active',
-    review: 'Review',
-    blocked: 'Blocked',
-    paused: 'Paused',
-    done: 'Done',
-    cancelled: 'Cancelled',
+function buildKanbanHtml(tasks) {
+  const cols = ["new", "active", "review", "blocked", "paused", "done", "cancelled"];
+  const labels = {
+    new: "New",
+    active: "Active",
+    review: "Review",
+    blocked: "Blocked",
+    paused: "Paused",
+    done: "Done",
+    cancelled: "Cancelled"
   };
-  const byStatus: Record<string, TaskView[]> = {};
+  const byStatus = {};
   for (const c of cols) byStatus[c] = [];
   for (const t of tasks) (byStatus[t.status] = byStatus[t.status] || []).push(t);
-  return `<div class="yvk-wrap">${cols
-    .map((status) => {
-      const cards = byStatus[status] || [];
-      return `<div class="yvk-col" data-status="${status}"><div class="yvk-head">${labels[status]} <span>${cards.length}</span></div><div class="yvk-cards">${cards
-        .map((t) => `<div class="yvk-card" draggable="true" data-line="${t.line}" style="padding-left:${8 + t.depth * 10}px"><div class="yvk-name">${esc(t.name)}</div>${t.description ? `<div class="yvk-desc">${esc(t.description)}</div>` : ''}</div>`)
-        .join('')}</div></div>`;
-    })
-    .join('')}</div>`;
+  return `<div class="yvk-wrap">${cols.map((status) => {
+    const cards = byStatus[status] || [];
+    return `<div class="yvk-col" data-status="${status}"><div class="yvk-head">${labels[status]} <span>${cards.length}</span></div><div class="yvk-cards">${cards.map((t) => `<div class="yvk-card" draggable="true" data-line="${t.line}" style="padding-left:${8 + t.depth * 10}px"><div class="yvk-name">${esc(t.name)}</div>${t.description ? `<div class="yvk-desc">${esc(t.description)}</div>` : ""}</div>`).join("")}</div></div>`;
+  }).join("")}</div>`;
 }
-
-function buildPeopleHtml(tasks: TaskView[]): string {
-  const byPerson: Record<string, TaskView[]> = {};
+function buildPeopleHtml(tasks) {
+  const byPerson = {};
   for (const t of tasks) {
-    const people = t.assignees?.length ? t.assignees : ['(unassigned)'];
+    const people = t.assignees?.length ? t.assignees : ["(unassigned)"];
     for (const p of people) (byPerson[p] = byPerson[p] || []).push(t);
   }
   const names = Object.keys(byPerson).sort((a, b) => {
-    if (a === '(unassigned)') return 1;
-    if (b === '(unassigned)') return -1;
+    if (a === "(unassigned)") return 1;
+    if (b === "(unassigned)") return -1;
     return a.localeCompare(b);
   });
   if (!names.length) return '<div class="hint">No tasks.</div>';
-  return names
-    .map((name) => {
-      const list = byPerson[name];
-      return `<div class="yvp-card"><div class="yvp-head">${esc(name === '(unassigned)' ? 'Unassigned' : '@' + name)} <span>${list.length}</span></div>${list
-        .map((t) => `<div class="yvp-row" data-line="${t.line}">${esc(t.name)}${t.progress != null ? ` <small>${t.progress}%</small>` : ''}</div>`)
-        .join('')}</div>`;
-    })
-    .join('');
+  return names.map((name) => {
+    const list = byPerson[name];
+    return `<div class="yvp-card"><div class="yvp-head">${esc(name === "(unassigned)" ? "Unassigned" : "@" + name)} <span>${list.length}</span></div>${list.map((t) => `<div class="yvp-row" data-line="${t.line}">${esc(t.name)}${t.progress != null ? ` <small>${t.progress}%</small>` : ""}</div>`).join("")}</div>`;
+  }).join("");
 }
-
-async function applyFullDocumentText(doc: vscode.TextDocument, nextText: string): Promise<boolean> {
+async function applyFullDocumentText(doc, nextText) {
   const edit = new vscode.WorkspaceEdit();
   const lastLine = doc.lineAt(doc.lineCount - 1);
   const fullRange = new vscode.Range(0, 0, doc.lineCount - 1, lastLine.text.length);
   edit.replace(doc.uri, fullRange, nextText);
   return vscode.workspace.applyEdit(edit);
 }
-
-export function activate(context: vscode.ExtensionContext) {
+function activate(context) {
   context.subscriptions.push(
-    vscode.commands.registerCommand('yatt.openPreview', async () => {
+    vscode.commands.registerCommand("yatt.openPreview", async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
       const lib = await getYatt();
       const docUri = editor.document.uri;
-
       const panel = vscode.window.createWebviewPanel(
-        'yattPreview',
-        'YATT Preview',
+        "yattPreview",
+        "YATT Preview",
         vscode.ViewColumn.Beside,
-        { enableScripts: true },
+        { enableScripts: true }
       );
-
-      const renderPanel = (source: string, title: string) => {
-        const { html, errors } = lib.render(source, 'gantt');
+      const renderPanel = (source, title) => {
+        const { html, errors } = lib.render(source, "gantt");
         const { doc } = lib.parse(source);
         const scheduled = lib.schedule(doc);
-        const tasks: TaskView[] = [];
-        flattenTasks((scheduled as any).items || [], tasks);
+        const tasks = [];
+        flattenTasks(scheduled.items || [], tasks);
         panel.webview.html = wrapHtml({
           title,
           source,
@@ -145,68 +139,50 @@ export function activate(context: vscode.ExtensionContext) {
           kanbanHtml: buildKanbanHtml(tasks),
           peopleHtml: buildPeopleHtml(tasks),
           tasks,
-          errors: errors.map((e) => `Line ${e.line}: ${e.message}`),
+          errors: errors.map((e) => `Line ${e.line}: ${e.message}`)
         });
       };
-
       renderPanel(editor.document.getText(), editor.document.fileName);
-
       const changeSub = vscode.workspace.onDidChangeTextDocument((e) => {
         if (e.document.uri.toString() === docUri.toString() && panel.visible) {
           renderPanel(e.document.getText(), e.document.fileName);
         }
       });
       panel.onDidDispose(() => changeSub.dispose());
-
       panel.webview.onDidReceiveMessage(async (msg) => {
-        if (msg?.type !== 'saveSource' || typeof msg.source !== 'string') return;
+        if (msg?.type !== "saveSource" || typeof msg.source !== "string") return;
         const doc = await vscode.workspace.openTextDocument(docUri);
         const ok = await applyFullDocumentText(doc, msg.source);
         if (!ok) {
-          vscode.window.showErrorMessage('YATT: failed to save changes from preview.');
+          vscode.window.showErrorMessage("YATT: failed to save changes from preview.");
           return;
         }
         renderPanel(msg.source, doc.fileName);
       });
-    }),
+    })
   );
 }
-
-export function deactivate() {}
-
-export async function extendMarkdownIt(md: MarkdownIt) {
+function deactivate() {
+}
+async function extendMarkdownIt(md) {
   const lib = await getYatt();
-  const defaultFence = md.renderer.rules.fence?.bind(md.renderer.rules) ?? (() => '');
-
+  const defaultFence = md.renderer.rules.fence?.bind(md.renderer.rules) ?? (() => "");
   md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const token = tokens[idx];
-    if (token.info.trim() !== 'yatt') {
+    if (token.info.trim() !== "yatt") {
       return defaultFence(tokens, idx, options, env, self);
     }
-
     try {
-      const { html, errors } = lib.render(token.content, 'gantt');
-      const errorHtml = errors.length
-        ? `<div class="yatt-errors">${errors.map((e) => `<p class="yatt-error">Line ${e.line}: ${e.message}</p>`).join('')}</div>`
-        : '';
+      const { html, errors } = lib.render(token.content, "gantt");
+      const errorHtml = errors.length ? `<div class="yatt-errors">${errors.map((e) => `<p class="yatt-error">Line ${e.line}: ${e.message}</p>`).join("")}</div>` : "";
       return `<div class="yatt-gantt">${errorHtml}${html}</div>`;
     } catch (err) {
       return `<div class="yatt-error">YATT render error: ${err}</div>`;
     }
   };
-
   return md;
 }
-
-function wrapHtml(model: {
-  title: string;
-  source: string;
-  timelineHtml: string;
-  kanbanHtml: string;
-  peopleHtml: string;
-  tasks: TaskView[];
-  errors: string[];
-}): string {
+function wrapHtml(model) {
   const sourceJson = JSON.stringify(model.source);
   const tasksJson = JSON.stringify(model.tasks);
   return `<!DOCTYPE html>
@@ -214,7 +190,7 @@ function wrapHtml(model: {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${esc(model.title)} — YATT Preview</title>
+<title>${esc(model.title)} \u2014 YATT Preview</title>
 <style>
   body { margin: 0; font-family: var(--vscode-font-family); background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); }
   .bar { display: flex; gap: 4px; padding: 10px; border-bottom: 1px solid var(--vscode-panel-border); }
@@ -255,7 +231,7 @@ function wrapHtml(model: {
     <button class="tab" data-panel="people">Assignees</button>
     <button class="tab" data-panel="edit">Edit</button>
   </div>
-  ${model.errors.length ? `<div class="errors">${model.errors.map(esc).join('<br>')}</div>` : ''}
+  ${model.errors.length ? `<div class="errors">${model.errors.map(esc).join("<br>")}</div>` : ""}
   <div class="panel active" data-panel="timeline">${model.timelineHtml}</div>
   <div class="panel" data-panel="kanban">${model.kanbanHtml}</div>
   <div class="panel" data-panel="people">${model.peopleHtml}</div>
@@ -395,4 +371,9 @@ document.querySelectorAll('.yvk-col[data-status]').forEach(col => {
 </body>
 </html>`;
 }
-
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  activate,
+  deactivate,
+  extendMarkdownIt
+});
